@@ -1,0 +1,351 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #080812;
+  color: #f7f5ff;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(123, 92, 255, 0.28), transparent 28rem),
+    radial-gradient(circle at 80% 0%, rgba(255, 79, 163, 0.2), transparent 22rem),
+    #080812;
+}
+
+button,
+select,
+textarea,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1.2rem;
+  background: linear-gradient(135deg, #ffffff, #d9d2ff);
+  color: #111121;
+  font-weight: 750;
+  cursor: pointer;
+  transition: transform 0.16s ease, opacity 0.16s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+button.secondary {
+  background: rgba(255, 255, 255, 0.09);
+  color: #f7f5ff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  color: #d9d2ff;
+}
+
+.page-shell {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
+  gap: 1.5rem;
+  align-items: stretch;
+  margin-bottom: 1.5rem;
+}
+
+.hero h1 {
+  font-size: clamp(3rem, 9vw, 6.5rem);
+  line-height: 0.9;
+  margin: 0;
+  letter-spacing: -0.08em;
+}
+
+.subtitle {
+  margin: 0.7rem 0 1rem;
+  color: #d9d2ff;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  font-weight: 800;
+}
+
+.hero-copy {
+  max-width: 670px;
+  color: #c9c4df;
+  font-size: 1.08rem;
+}
+
+.hero-actions,
+.stacked-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.2rem;
+}
+
+.principle-card,
+.card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.055));
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.principle-card {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.principle-card span,
+.eyebrow {
+  color: #a795ff;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  font-weight: 800;
+  margin: 0 0 0.55rem;
+}
+
+.principle-card strong {
+  font-size: 1.85rem;
+  line-height: 1.05;
+}
+
+.principle-card p,
+.card p,
+.tiny,
+.muted {
+  color: #c9c4df;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.three-columns {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.card {
+  padding: 1.3rem;
+}
+
+.card h2,
+.card h3 {
+  margin: 0.2rem 0 0.75rem;
+  letter-spacing: -0.035em;
+}
+
+.card h2 {
+  font-size: 1.35rem;
+}
+
+.card h3 {
+  font-size: 1.55rem;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.status,
+.pill {
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.status.open,
+.pill {
+  color: #a9ffda;
+  background: rgba(78, 255, 180, 0.12);
+}
+
+.status.closed {
+  color: #ffcf7a;
+  background: rgba(255, 184, 77, 0.12);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 1.1rem 0;
+}
+
+.stats div,
+.answer-box,
+.winner-box,
+.ledger-row,
+.error-box {
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.8rem;
+}
+
+.stats dt {
+  color: #9d96bd;
+  font-size: 0.78rem;
+}
+
+.stats dd {
+  margin: 0.2rem 0 0;
+  font-weight: 800;
+}
+
+.locked {
+  color: #ff9fd4;
+}
+
+.option-list {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.option-list span {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  color: #d9d2ff;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.form-card label {
+  display: grid;
+  gap: 0.45rem;
+  color: #d9d2ff;
+  font-weight: 700;
+  margin-top: 0.85rem;
+}
+
+select,
+textarea,input[type="range"] {
+  width: 100%;
+}
+
+select,
+textarea {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(5, 5, 14, 0.72);
+  color: #fff;
+  border-radius: 16px;
+  padding: 0.85rem;
+  outline: none;
+}
+
+textarea {
+  min-height: 105px;
+  resize: vertical;
+}
+
+.form-card button {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.ledger {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.ledger-row {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.error-box {
+  color: #ffc4de;
+  border-color: rgba(255, 118, 178, 0.35);
+}
+
+.reveal-panel {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.answer-box span,
+.winner-box span {
+  display: block;
+  color: #9d96bd;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 800;
+}
+
+.answer-box strong,
+.winner-box strong {
+  font-size: 2rem;
+}
+
+.distribution {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.distribution-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 32px;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+meter {
+  width: 100%;
+}
+
+.log-card ul {
+  padding-left: 1rem;
+  color: #dcd8ef;
+}
+
+.log-card li + li {
+  margin-top: 0.55rem;
+}
+
+.tiny {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 880px) {
+  .hero,
+  .two-columns,
+  .three-columns,
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}
