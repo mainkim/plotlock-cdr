@@ -2,7 +2,7 @@
 
 **Predict the ending without seeing the crowd. Reveal only after the story does.**
 
-PlotLock is framed as a **sealed prediction experiment**: public commitments stay visible, live odds stay blinded until story release, then CDR reveal unlocks an honest tally (`n` labeled, Okabe–Ito encoding). Design rationale, hypotheses, and Exa/paper-lookup discovery notes live in [`docs/experiment-design.md`](docs/experiment-design.md).
+PlotLock is framed as a **sealed prediction experiment**: public commitments stay visible, live odds stay blinded until story release, then CDR reveal unlocks an honest tally (`n` labeled, Okabe–Ito encoding). Design rationale and hypotheses: [`docs/experiment-design.md`](docs/experiment-design.md). Exa publication-search playbook (trenddalkak guide → PlotLock prompts): [`docs/exa-research-playbook.md`](docs/exa-research-playbook.md).
 
 PlotLock is a Story CDR hackathon app concept for spoilerless prediction markets around story-based IP: comics, games, anime, novels, dramas, quests, and finales.
 
