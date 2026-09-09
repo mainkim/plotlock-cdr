@@ -776,10 +776,18 @@ button {
   color: var(--warn);
 }
 
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
 @media (max-width: 1000px) {
-  .app-shell {
-    grid-template-columns: 78px 1fr;
+  .pricing-grid {
+    grid-template-columns: 1fr;
   }
+}
 
   .sidebar {
     width: 78px;

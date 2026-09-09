@@ -128,7 +128,7 @@ function ResearcherShell({ children }: { children: ReactNode }) {
           </Link>
           <Link href="/pricing">
             <Settings size={18} />
-            <span>요금 가설</span>
+            <span>요금</span>
           </Link>
         </div>
       </aside>
