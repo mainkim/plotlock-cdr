@@ -1,4 +1,5 @@
 import { assignCondition } from "./assignment";
+import { expandLineageFromDoi } from "./ai/expand-lineage";
 import { generateStudyDraft, DEMO_PROMPT } from "./ai/generator";
 import { addLineageEdge, buildLineageGraph, syncLineageFromDocuments } from "./ai/lineage";
 import {
@@ -17,6 +18,7 @@ import type {
   ResearchEvent,
   Session,
   SourceDocument,
+  SourceLibrary,
   Study,
   StudyDraftSpec,
   StudyVersion,
@@ -217,6 +219,53 @@ export function seedSourceLibrary(studyId: string) {
     spec.sourceLibrary = seedDemoSourceLibrary();
     return spec;
   });
+}
+
+function cloneSourceLibrary(library: SourceLibrary): SourceLibrary {
+  return {
+    groundingMode: library.groundingMode,
+    lastGroundedAt: library.lastGroundedAt,
+    documents: library.documents.map((d) => ({
+      ...d,
+      citesSourceIds: d.citesSourceIds ? [...d.citesSourceIds] : []
+    })),
+    edges: library.edges.map((e) => ({ ...e }))
+  };
+}
+
+/** Expand paper lineage around a DOI via OpenAlex + Semantic Scholar */
+export async function expandStudyLineageFromDoi(
+  studyId: string,
+  doi: string,
+  opts?: { refLimit?: number; citeLimit?: number; similarLimit?: number }
+) {
+  const snapshot = withDbRead((db) => {
+    const study = db.studies.find((s) => s.id === studyId);
+    if (!study) throw new Error("Study not found");
+    const version = db.versions.find((v) => v.id === study.latestDraftVersionId);
+    if (!version) throw new Error("Draft version not found");
+    if (version.status === "published") {
+      throw new Error("Published version cannot be edited. Create a new draft.");
+    }
+    return cloneSourceLibrary(getSourceLibrary(version.spec));
+  });
+
+  const expanded = await expandLineageFromDoi(snapshot, doi, opts);
+  const { study, version } = updateDraftSpec(studyId, (spec) => {
+    spec.sourceLibrary = expanded.library;
+    return spec;
+  });
+
+  return {
+    study,
+    version,
+    seed: expanded.seed,
+    addedCount: expanded.added.length,
+    edgesAdded: expanded.edgesAdded,
+    providers: expanded.providers,
+    warnings: expanded.warnings,
+    graph: buildLineageGraph(version.spec)
+  };
 }
 
 export function approveStudy(studyId: string, opts?: { forceClearBlockers?: boolean }) {

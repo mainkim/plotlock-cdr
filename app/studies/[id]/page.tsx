@@ -78,6 +78,7 @@ function StudyPageInner() {
     text: "",
     citesSourceId: ""
   });
+  const [doiExpand, setDoiExpand] = useState("");
   const [groundQuery, setGroundQuery] = useState("");
   const [groundPreview, setGroundPreview] = useState<{
     note: string;
@@ -124,6 +125,18 @@ function StudyPageInner() {
       if (action === "publish") {
         const joinCode = (result as { joinCode?: string }).joinCode;
         setNotice(`Published · 참여 코드 ${joinCode}`);
+      } else if (action === "expand_lineage") {
+        const r = result as {
+          addedCount?: number;
+          edgesAdded?: number;
+          providers?: string[];
+          warnings?: string[];
+          seed?: { title?: string };
+        };
+        const warn = r.warnings?.length ? ` · 경고 ${r.warnings.length}` : "";
+        setNotice(
+          `계보 확장: ${r.seed?.title ?? "논문"} · +${r.addedCount ?? 0}편 · 엣지 ${r.edgesAdded ?? 0} (${(r.providers ?? []).join(", ") || "—"})${warn}`
+        );
       } else {
         setNotice("저장되었습니다.");
       }
@@ -244,7 +257,7 @@ function StudyPageInner() {
               <h2 style={{ margin: "8px 0 4px" }}>노트북 LLM처럼, 넣은 자료만 근거로 씁니다</h2>
               <p className="muted" style={{ margin: 0 }}>
                 Retrieval-Augmented Generation (그라운디드 생성). 코퍼스 밖 지식으로 자극을 만들지 않습니다.
-                계보는 ResearchRabbit처럼 인용 관계를 보여 줍니다.
+                계보는 OpenAlex·Semantic Scholar로 DOI 주변 논문을 확장합니다.
               </p>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -258,6 +271,31 @@ function StudyPageInner() {
               </button>
               <button className="primary-btn" type="button" onClick={() => setTab("conditions")}>
                 조건·자극으로 →
+              </button>
+            </div>
+          </div>
+
+          <div className="checklist-card" style={{ marginBottom: 16 }}>
+            <h3 style={{ marginTop: 0 }}>DOI로 계보 확장 (OpenAlex + Semantic Scholar)</h3>
+            <p className="muted" style={{ marginTop: 0 }}>
+              시드 논문의 참고문헌·피인용·유사 논문을 자료실에 넣고 인용 그래프를 연결합니다.
+            </p>
+            <div className="field" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <label style={{ flex: "1 1 240px", marginBottom: 0 }}>
+                DOI
+                <input
+                  value={doiExpand}
+                  onChange={(e) => setDoiExpand(e.target.value)}
+                  placeholder="10.1037/0022-3514.51.6.1173"
+                />
+              </label>
+              <button
+                className="primary-btn"
+                type="button"
+                disabled={busy || !doiExpand.trim()}
+                onClick={() => run("expand_lineage", { doi: doiExpand.trim() })}
+              >
+                계보 가져오기
               </button>
             </div>
           </div>
@@ -347,6 +385,8 @@ function StudyPageInner() {
                         <strong>{d.title}</strong>
                         <p>
                           {[d.authors, d.year].filter(Boolean).join(" · ")} · {d.kind}
+                          {d.doi ? ` · DOI ${d.doi}` : ""}
+                          {typeof d.citedByCount === "number" ? ` · cited ${d.citedByCount}` : ""}
                         </p>
                       </div>
                       <button

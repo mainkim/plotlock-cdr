@@ -7,6 +7,7 @@ import {
   createNewDraftFromPublished,
   createStudyFromPrompt,
   duplicateStudy,
+  expandStudyLineageFromDoi,
   getDataOverview,
   getParticipantTimeline,
   getStudyBundle,
@@ -187,6 +188,18 @@ export async function POST(req: Request) {
       }
       case "seed_source_library": {
         return NextResponse.json(seedSourceLibrary(body.studyId));
+      }
+      case "expand_lineage": {
+        if (!body.doi || typeof body.doi !== "string") {
+          return NextResponse.json({ error: "doi required" }, { status: 400 });
+        }
+        return NextResponse.json(
+          await expandStudyLineageFromDoi(body.studyId, body.doi, {
+            refLimit: body.refLimit,
+            citeLimit: body.citeLimit,
+            similarLimit: body.similarLimit
+          })
+        );
       }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
