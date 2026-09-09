@@ -1,11 +1,33 @@
 import { randomBytes, createHash } from "crypto";
-import { mkdirSync, readFileSync, renameSync, writeFileSync, existsSync } from "fs";
+import {
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+  existsSync,
+  unlinkSync,
+  statSync
+} from "fs";
 import path from "path";
 import type { DbShape } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+/** On Vercel the deployment FS is read-only; use /tmp (+ in-memory) instead. */
+const DATA_DIR = IS_SERVERLESS
+  ? path.join("/tmp", "haebom-data")
+  : path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "haebom.json");
 const LOCK_PATH = path.join(DATA_DIR, "haebom.lock");
+const STALE_LOCK_MS = 5_000;
+
+type GlobalDb = typeof globalThis & {
+  __haebomDb?: DbShape;
+};
+
+function g(): GlobalDb {
+  return globalThis as GlobalDb;
+}
 
 export function emptyDb(): DbShape {
   return {
@@ -33,63 +55,126 @@ function ensureDir() {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 }
 
-function acquireLock(retries = 50): void {
+function sleepSpin(ms: number) {
+  const waitUntil = Date.now() + ms;
+  while (Date.now() < waitUntil) {
+    /* spin */
+  }
+}
+
+function isStaleLock(): boolean {
+  try {
+    const age = Date.now() - statSync(LOCK_PATH).mtimeMs;
+    return age > STALE_LOCK_MS;
+  } catch {
+    return false;
+  }
+}
+
+function forceUnlock() {
+  for (const p of [LOCK_PATH, LOCK_PATH + ".tmp"]) {
+    try {
+      if (existsSync(p)) unlinkSync(p);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function acquireLock(retries = 80): void {
   ensureDir();
   for (let i = 0; i < retries; i++) {
     try {
-      writeFileSync(LOCK_PATH, String(process.pid), { flag: "wx" });
+      writeFileSync(LOCK_PATH, `${process.pid}:${Date.now()}`, { flag: "wx" });
       return;
     } catch {
-      // busy wait briefly
-      const waitUntil = Date.now() + 20;
-      while (Date.now() < waitUntil) {
-        /* spin */
+      if (isStaleLock()) {
+        forceUnlock();
+        continue;
       }
+      sleepSpin(25);
+    }
+  }
+  // Last resort on serverless: break and take the lock so demo stays usable
+  if (IS_SERVERLESS) {
+    forceUnlock();
+    try {
+      writeFileSync(LOCK_PATH, `${process.pid}:${Date.now()}`, { flag: "wx" });
+      return;
+    } catch {
+      /* fall through */
     }
   }
   throw new Error("Could not acquire DB lock");
 }
 
 function releaseLock() {
-  try {
-    if (existsSync(LOCK_PATH)) {
-      // best-effort unlock
-      writeFileSync(LOCK_PATH, "");
-      renameSync(LOCK_PATH, LOCK_PATH + ".tmp");
-    }
-  } catch {
-    /* ignore */
-  }
-  try {
-    if (existsSync(LOCK_PATH + ".tmp")) {
-      const { unlinkSync } = require("fs") as typeof import("fs");
-      unlinkSync(LOCK_PATH + ".tmp");
-    }
-  } catch {
-    /* ignore */
-  }
+  forceUnlock();
 }
 
-export function readDb(): DbShape {
+function loadDbFromDisk(): DbShape {
   ensureDir();
   if (!existsSync(DB_PATH)) {
     const db = emptyDb();
-    writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+    try {
+      writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+    } catch {
+      /* /tmp write may fail in extreme cases; keep in-memory */
+    }
     return db;
   }
   const raw = readFileSync(DB_PATH, "utf8");
   return JSON.parse(raw) as DbShape;
 }
 
+function persistDb(db: DbShape) {
+  ensureDir();
+  const tmp = DB_PATH + ".tmp";
+  writeFileSync(tmp, JSON.stringify(db, null, 2));
+  renameSync(tmp, DB_PATH);
+}
+
+function getMemoryDb(): DbShape {
+  const store = g();
+  if (!store.__haebomDb) {
+    store.__haebomDb = loadDbFromDisk();
+  }
+  return store.__haebomDb;
+}
+
+function setMemoryDb(db: DbShape) {
+  g().__haebomDb = db;
+}
+
+export function readDb(): DbShape {
+  if (IS_SERVERLESS) {
+    // Clone so accidental mutation outside withDb doesn't leak mid-request
+    return structuredClone(getMemoryDb());
+  }
+  return loadDbFromDisk();
+}
+
 export function withDb<T>(fn: (db: DbShape) => T): T {
   acquireLock();
   try {
-    const db = readDb();
+    if (IS_SERVERLESS) {
+      // In-memory + /tmp backup (ephemeral across cold starts; OK for hackathon demo)
+      const db = getMemoryDb();
+      const result = fn(db);
+      db.meta.updatedAt = new Date().toISOString();
+      setMemoryDb(db);
+      try {
+        persistDb(db);
+      } catch {
+        /* memory remains source of truth for this isolate */
+      }
+      return result;
+    }
+
+    const db = loadDbFromDisk();
     const result = fn(db);
     db.meta.updatedAt = new Date().toISOString();
-    const tmp = DB_PATH + ".tmp";
-    writeFileSync(tmp, JSON.stringify(db, null, 2));
-    renameSync(tmp, DB_PATH);
+    persistDb(db);
     return result;
   } finally {
     releaseLock();
