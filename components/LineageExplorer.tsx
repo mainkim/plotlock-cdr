@@ -125,7 +125,7 @@ export function LineageExplorer({ library, graph, onFocus }: Props) {
             const n = library.documents.filter((d) => d.collectionId === c.id).length;
             return (
               <li key={c.id}>
-                <label>
+                <label className="lineage-check">
                   <input
                     type="checkbox"
                     checked={activeCols.includes(c.id)}
@@ -140,22 +140,26 @@ export function LineageExplorer({ library, graph, onFocus }: Props) {
           })}
         </ul>
         <h3>필터</h3>
-        <div className="field">
-          <label>
-            연도 {yearMin} – {yearMax}
+        <div className="lineage-filters">
+          <p className="lineage-year-label">연도 {yearMin} – {yearMax}</p>
+          <label className="lineage-year-row">
+            <span>시작</span>
             <input
               type="range"
               min={2000}
               max={2026}
               value={yearMin}
-              onChange={(e) => setYearMin(Number(e.target.value))}
+              onChange={(e) => setYearMin(Math.min(Number(e.target.value), yearMax))}
             />
+          </label>
+          <label className="lineage-year-row">
+            <span>끝</span>
             <input
               type="range"
               min={2000}
               max={2026}
               value={yearMax}
-              onChange={(e) => setYearMax(Number(e.target.value))}
+              onChange={(e) => setYearMax(Math.max(Number(e.target.value), yearMin))}
             />
           </label>
           <fieldset className="lineage-types">
@@ -166,7 +170,7 @@ export function LineageExplorer({ library, graph, onFocus }: Props) {
               ["conference", "학술대회 논문"],
               ["review", "리뷰 논문"]
             ].map(([id, label]) => (
-              <label key={id}>
+              <label key={id} className="lineage-check">
                 <input
                   type="checkbox"
                   checked={types.includes(id)}
@@ -174,7 +178,7 @@ export function LineageExplorer({ library, graph, onFocus }: Props) {
                     setTypes((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
                   }
                 />
-                {label}
+                <span>{label}</span>
               </label>
             ))}
           </fieldset>
@@ -263,10 +267,16 @@ export function LineageExplorer({ library, graph, onFocus }: Props) {
                   }}
                   style={{ cursor: "pointer" }}
                 >
-                  {isSel ? <circle r={(n.r ?? 28) + 8} fill={n.color ?? "#316BFF"} opacity="0.16" /> : null}
-                  <circle r={n.r ?? 28} fill={n.color ?? "#316BFF"} stroke="#fff" strokeWidth={isSel ? 3 : 2} />
-                  <text textAnchor="middle" y={4} fontSize={n.isFocus ? 12 : 10} fill="#fff" fontWeight={700}>
-                    {n.shortLabel ?? n.title.slice(0, 10)}
+                  {isSel ? <circle r={(n.r ?? 22) + 7} fill={n.color ?? "#316BFF"} opacity="0.18" /> : null}
+                  <circle r={n.r ?? 22} fill={n.color ?? "#316BFF"} stroke="#fff" strokeWidth={isSel ? 3 : 2} />
+                  <text
+                    textAnchor="middle"
+                    y={(n.r ?? 22) + 16}
+                    fontSize={11}
+                    fill="#1a2a44"
+                    fontWeight={700}
+                  >
+                    {n.shortLabel ?? n.title.slice(0, 12)}
                   </text>
                 </g>
               );
@@ -293,7 +303,7 @@ function PaperDetail({
   return (
     <>
       <span className="pill blue">{type}</span>
-      <h3>{doc.title}</h3>
+      <h3>{!doc.title || doc.title === "Untitled" ? [doc.authors, doc.year].filter(Boolean).join(" · ") || "제목 없음" : doc.title}</h3>
       <p className="muted">
         {doc.authors}
         {doc.year ? ` · ${doc.year}` : ""}

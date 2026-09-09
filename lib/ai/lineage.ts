@@ -27,14 +27,13 @@ export type LineageGraphView = {
 };
 
 export function authorYearLabel(doc: { authors?: string; year?: number; title: string }): string {
-  const last = (doc.authors ?? "")
-    .split(/[,&]/)[0]
-    .trim()
-    .split(/\s+/)
-    .slice(-1)[0];
-  if (last && doc.year) return `${last}, ${doc.year}`;
+  const first = (doc.authors ?? "").split(/[,&]/)[0].trim();
+  const last = first.split(/\s+/).filter(Boolean).slice(-1)[0] ?? "";
+  const name = last.length > 12 ? `${last.slice(0, 11)}…` : last;
+  if (name && doc.year) return `${name}, ${doc.year}`;
   if (doc.year) return String(doc.year);
-  return doc.title.slice(0, 12);
+  const t = doc.title === "Untitled" ? "Paper" : doc.title;
+  return t.slice(0, 14);
 }
 
 /** Sync citesSourceIds on documents into explicit lineage edges */
@@ -99,20 +98,28 @@ export function buildLineageGraph(spec: StudyDraftSpec, focusId?: string): Linea
 
   const cx = width / 2;
   const cy = height / 2 + 8;
+  const citeN = library.edges.filter((e) => e.relation === "cites").length;
 
-  const placeArc = (list: SourceDocument[], start: number, end: number, radius: number) => {
+  const placeArc = (list: SourceDocument[], start: number, end: number, radius: number, r = 22) => {
     return list.map((doc, i) => {
       const t = list.length === 1 ? (start + end) / 2 : start + ((end - start) * i) / Math.max(1, list.length - 1);
-      return { doc, x: cx + Math.cos(t) * radius, y: cy + Math.sin(t) * radius, r: 28 };
+      return { doc, x: cx + Math.cos(t) * radius, y: cy + Math.sin(t) * radius, r };
     });
   };
 
-  const placed = [
-    { doc: focus, x: cx, y: cy, r: 40, isFocus: true },
-    ...placeArc(refs, Math.PI * 0.55, Math.PI * 1.45, 168).map((p) => ({ ...p, isFocus: false })),
-    ...placeArc(citers, -Math.PI * 0.45, Math.PI * 0.45, 176).map((p) => ({ ...p, isFocus: false })),
-    ...placeArc(others, Math.PI * 0.15, Math.PI * 0.85, 230).map((p) => ({ ...p, isFocus: false }))
-  ];
+  const placed =
+    citeN === 0
+      ? docs.map((doc, i) => {
+          const t = -Math.PI / 2 + (2 * Math.PI * i) / docs.length;
+          const radius = docs.length === 1 ? 0 : Math.min(170, 70 + docs.length * 12);
+          return { doc, x: cx + Math.cos(t) * radius, y: cy + Math.sin(t) * radius, r: 22, isFocus: i === 0 };
+        })
+      : [
+          { doc: focus, x: cx, y: cy, r: 28, isFocus: true },
+          ...placeArc(refs, Math.PI * 0.62, Math.PI * 1.38, 155).map((p) => ({ ...p, isFocus: false })),
+          ...placeArc(citers, -Math.PI * 0.38, Math.PI * 0.38, 165).map((p) => ({ ...p, isFocus: false })),
+          ...placeArc(others, Math.PI * 0.2, Math.PI * 0.8, 215, 20).map((p) => ({ ...p, isFocus: false }))
+        ];
 
   const nodes: LineageNodeView[] = placed.map((p) => ({
     id: p.doc.id,
