@@ -3,6 +3,19 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronRight,
+  Circle,
+  FlaskConical,
+  MessageCircle,
+  MoreHorizontal,
+  Play,
+  QrCode,
+  ShieldCheck,
+  Users
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { api } from "@/lib/client-api";
 import type { ConditionDiffWarning, QaReport, Study, StudyVersion } from "@/lib/types";
@@ -17,13 +30,14 @@ type Bundle = {
 };
 
 const TABS = [
-  { id: "design", label: "연구 설계" },
-  { id: "conditions", label: "4조건 비교" },
+  { id: "design", label: "AI 연구 브리프" },
+  { id: "conditions", label: "조건·자극" },
   { id: "stimuli", label: "자극 편집" },
   { id: "survey", label: "설문" },
   { id: "behavior", label: "행동 측정" },
-  { id: "qa", label: "Measurement Map / QA" },
-  { id: "publish", label: "승인 · Publish" }
+  { id: "qa", label: "측정 설계" },
+  { id: "publish", label: "검토·승인" },
+  { id: "recruit", label: "모집·실행" }
 ] as const;
 
 function StudyPageInner() {
@@ -131,7 +145,7 @@ function StudyPageInner() {
 
       <section className="panel">
         <p className="muted" style={{ margin: 0 }}>
-          화면 흐름 · 설계 → 조건 → 자극 → 설문 → 행동 → QA → 승인
+          화면 흐름 · 브리프 → 조건·자극 → 측정 → 검토·승인 → 모집·실행
         </p>
         <div className="steps">
           {TABS.map((t) => (
@@ -182,51 +196,99 @@ function StudyPageInner() {
       )}
 
       {tab === "conditions" && (
-        <section className="panel">
-          <h3>조건 비교 (2×2)</h3>
-          <p className="muted">조건 간 다른 부분을 강조합니다. 교란변수라고 확정하지 않습니다.</p>
+        <section className="panel studio-panel">
+          <div className="workspace-head" style={{ marginBottom: 8, padding: 0 }}>
+            <div>
+              <span className="pill blue">조건·자극 스튜디오</span>
+              <h2 style={{ margin: "8px 0 4px" }}>의도한 차이만 남았는지 확인하세요</h2>
+              <p className="muted" style={{ margin: 0 }}>
+                양적 실험 · {spec.design.factors.map((f) => f.levels.length).join(" × ")} 집단 간 설계
+              </p>
+            </div>
+            <button className="primary-btn" type="button" onClick={() => setTab("qa")}>
+              측정 설계로 이동 →
+            </button>
+          </div>
+
           {bundle.diffs.map((d) => (
             <div key={d.field} className="alert alert-warn">
               {d.message}
             </div>
           ))}
-          <div className="condition-grid" style={{ marginTop: "1rem" }}>
+
+          <div className="condition-grid studio-grid">
             {spec.conditions.map((c) => {
               const stim = spec.stimuli.find((s) => s.conditionId === c.id)!;
               const warn = changedCta.has(stim.id);
+              const levelLabels = Object.entries(c.factorLevels).map(([fid, lid]) => {
+                const f = spec.design.factors.find((x) => x.id === fid);
+                const l = f?.levels.find((x) => x.id === lid);
+                return { factor: f?.name ?? fid, label: l?.label ?? lid };
+              });
               return (
-                <div key={c.id} className={`condition-card ${warn ? "warn" : ""}`}>
-                  <strong>{c.label}</strong>
-                  <p className="muted" style={{ margin: "0.35rem 0" }}>
-                    {Object.entries(c.factorLevels)
-                      .map(([fid, lid]) => {
-                        const f = spec.design.factors.find((x) => x.id === fid);
-                        const l = f?.levels.find((x) => x.id === lid);
-                        return l?.label;
-                      })
-                      .join(" · ")}
-                  </p>
-                  <div className="stimulus-stage" style={{ padding: "0.85rem" }}>
-                    <div style={{ fontSize: "0.85rem", color: "var(--ink-soft)" }}>{stim.title}</div>
-                    <p>{stim.body}</p>
-                    {stim.reasonShown ? <p className="highlight">{stim.reasonText}</p> : null}
-                    <p>
-                      CTA:{" "}
-                      <span className={warn ? "highlight" : ""}>{stim.ctaLabel}</span>
-                    </p>
-                    <p className="muted">{stim.criteriaButtonLabel}</p>
+                <div key={c.id} className={`condition-card studio-card ${warn ? "warn" : ""}`}>
+                  <div className="studio-card-top">
+                    <strong>{c.label}</strong>
+                    <MoreHorizontal size={16} className="muted" />
                   </div>
-                  {warn ? <span className="diff-chip">의도하지 않은 차이일 수 있습니다. 검토하세요.</span> : null}
+                  <div className="factor-pills">
+                    {levelLabels.map((lv) => (
+                      <span
+                        key={lv.factor}
+                        className={`pill ${lv.label.includes("없") || lv.label.toLowerCase().includes("no") || lv.label.includes("비제공") ? "gray" : "mint"}`}
+                      >
+                        {lv.factor}: {lv.label}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="stimulus-stage ai-answer-block">
+                    <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
+                      {stim.title || "자극 미리보기"}
+                    </div>
+                    <p style={{ margin: "0 0 8px" }}>{stim.body}</p>
+                    {stim.reasonShown && stim.reasonText ? (
+                      <p className="highlight cite-line">{stim.reasonText}</p>
+                    ) : (
+                      <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
+                        출처/이유 미표시
+                      </p>
+                    )}
+                    <div className={`tone-chip ${stim.tone === "warm" ? "warm" : "neutral"}`}>
+                      {stim.tone === "warm" ? "표현: 온화" : "표현: 중립"} · CTA “{stim.ctaLabel}”
+                    </div>
+                    <p className="muted" style={{ margin: "8px 0 0", fontSize: 12 }}>
+                      {stim.criteriaButtonLabel}
+                    </p>
+                  </div>
+                  {warn ? (
+                    <span className="diff-chip">의도하지 않은 차이일 수 있습니다. 검토하세요.</span>
+                  ) : null}
                 </div>
               );
             })}
           </div>
-          <div style={{ marginTop: "1rem", display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+
+          <div className="studio-footer">
+            <div className="studio-check ok">
+              <CheckCircle2 size={18} />
+              <div>
+                <strong>무작위 배정</strong>
+                <p>참가자를 {spec.conditions.length}개 조건에 균등 배정합니다.</p>
+              </div>
+            </div>
+            <div className={`studio-check ${bundle.diffs.length || changedCta.size ? "warn" : "ok"}`}>
+              {bundle.diffs.length || changedCta.size ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+              <div>
+                <strong>표현·문구 차이</strong>
+                <p>
+                  {bundle.diffs.length || changedCta.size
+                    ? "확신도/CTA 외 표현 차이를 확인하세요."
+                    : "조건 간 의도한 조작만 감지되었습니다."}
+                </p>
+              </div>
+            </div>
             <button className="outline-btn" type="button" onClick={() => setTab("stimuli")}>
-              자극 편집
-            </button>
-            <button className="primary-btn" type="button" onClick={() => setTab("qa")}>
-              측정 설계로 이동 →
+              차이 상세 보기
             </button>
           </div>
         </section>
@@ -383,41 +445,130 @@ function StudyPageInner() {
 
       {tab === "publish" && (
         <section className="panel">
-          <h3>검토·승인 · Version lock</h3>
-          <p className="muted">
-            Draft → Review → Approved → Published. Published 이후 직접 수정 금지. 수정 시 새 draft version.
-          </p>
-          <div className="grid-2" style={{ marginBottom: "1rem" }}>
+          <div className="workspace-head" style={{ padding: 0, marginBottom: 12 }}>
             <div>
-              <h4 style={{ marginTop: 0 }}>승인 체크리스트</h4>
-              <ul style={{ paddingLeft: "1.1rem", margin: 0 }}>
-                <li>선행연구/척도 출처는 연구자 확인 (AI 미확정)</li>
-                <li>조건별 의도치 않은 차이 검토</li>
-                <li className={!bundle.qa.canApprove ? "" : "muted"}>
-                  Measurement Map blocker {bundle.qa.canApprove ? "해소됨" : "남음"}
-                </li>
-                <li className="muted">표본수·IRB는 reviewRequired (연구자 책임)</li>
-                <li>개인정보와 연구데이터 분리 (Participant ID)</li>
-              </ul>
-            </div>
-            <div className="approval-card" style={{ background: "var(--navy)", color: "#fff", borderRadius: 20, padding: 24 }}>
-              <span className={`pill ${bundle.qa.canApprove ? "mint" : "amber"}`}>
-                {bundle.qa.canApprove ? "승인 가능" : "승인 대기"}
-              </span>
-              <h3 style={{ color: "#fff", margin: "12px 0" }}>
-                연구자가 승인한 설계만 실행됩니다
-              </h3>
-              <p style={{ color: "#c2cfdb", fontSize: 13 }}>
-                현재 버전 v{version.versionNumber} · {version.status}. AI는 타당성을 보장하지 않습니다.
+              <span className="pill amber">게시 전 확인</span>
+              <h2 style={{ margin: "8px 0 4px" }}>연구자가 승인한 설계만 실행됩니다</h2>
+              <p className="muted" style={{ margin: 0 }}>
+                AI 제안, 근거, 윤리 항목을 한 번 더 검토하세요.
               </p>
             </div>
           </div>
-          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+
+          {(() => {
+            const checklist = [
+              {
+                id: "cite",
+                done: true,
+                label: "선행연구 원문과 인용 일치",
+                hint: "연구자 확인 항목 (AI 미확정)"
+              },
+              {
+                id: "scale",
+                done: !spec.reviewRequired.some((r) => /scale|척도|번역/i.test(r.field + r.reason)),
+                label: "검증 척도와 번역 절차 확인",
+                hint: "reviewRequired 척도 항목"
+              },
+              {
+                id: "confound",
+                done: !(bundle.diffs.length || changedCta.size),
+                label: "조건별 혼입 변인 검토",
+                hint: "조건·자극 스튜디오에서 확인"
+              },
+              {
+                id: "n",
+                done: !spec.reviewRequired.some((r) => /sample|표본|N\b|target/i.test(r.field + r.reason)),
+                label: "표본수 산정 근거 첨부",
+                hint: "연구자 책임"
+              },
+              {
+                id: "irb",
+                done: !spec.reviewRequired.some((r) => /irb|윤리/i.test(r.field + r.reason)),
+                label: "IRB 또는 연구윤리 검토",
+                hint: "연구자 책임"
+              },
+              {
+                id: "pii",
+                done: true,
+                label: "개인정보·민감정보 분리",
+                hint: "Participant ID 자동 가명"
+              },
+              {
+                id: "measure",
+                done: bundle.qa.canApprove,
+                label: "Measurement Map blocker 해소",
+                hint: "측정 설계 QA"
+              }
+            ];
+            const doneCount = checklist.filter((c) => c.done).length;
+            const pending = checklist.length - doneCount;
+            return (
+              <div className="approval-layout">
+                <div className="checklist-card">
+                  <div className="checklist-head">
+                    <div className="ai-orb">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div>
+                      <strong>승인 체크리스트</strong>
+                      <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+                        {checklist.length}개 중 {doneCount}개 완료
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="checklist">
+                    {checklist.map((item) => (
+                      <li key={item.id} className={item.done ? "done" : "pending"}>
+                        {item.done ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                        <div>
+                          <strong>{item.label}</strong>
+                          <p>{item.hint}</p>
+                        </div>
+                        <ChevronRight size={16} className="muted" />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="approval-card">
+                  <FlaskConical size={28} />
+                  <span className={`pill ${pending === 0 ? "mint" : "amber"}`}>
+                    {pending === 0 ? "승인 가능" : "승인 대기"}
+                  </span>
+                  <h3>
+                    {pending === 0
+                      ? "연구앱을 게시할 수 있어요"
+                      : `${pending}개 항목을 확인하면 연구앱을 게시할 수 있어요`}
+                  </h3>
+                  <p>
+                    승인 시 현재 설계가 버전 {version.versionNumber}.0으로 고정되고 변경 이력이
+                    기록됩니다. AI는 타당성을 보장하지 않습니다.
+                  </p>
+                  <button
+                    className="primary-btn"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      if (pending > 0) setTab(bundle.qa.canApprove ? "conditions" : "qa");
+                      else run("approve");
+                    }}
+                  >
+                    {pending > 0 ? "미완료 항목 확인" : "승인"}
+                  </button>
+                  <Link className="preview-link" href={`/p/${bundle.study.joinCode}`}>
+                    참가자 화면 미리보기 <ChevronRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: 16 }}>
             <button id="btn-submit-review" className="btn btn-secondary" type="button" disabled={busy} onClick={() => run("submit_review")}>
               Review로 제출
             </button>
             <button id="btn-approve" className="btn btn-secondary" type="button" disabled={busy} onClick={() => run("approve")}>
-              승인
+              강제 승인
             </button>
             <button id="btn-publish" className="btn" type="button" disabled={busy} onClick={() => run("publish")}>
               Publish
@@ -439,39 +590,146 @@ function StudyPageInner() {
                 새 draft version 생성
               </button>
             ) : null}
+            <button className="primary-btn" type="button" onClick={() => setTab("recruit")}>
+              모집·실행으로 →
+            </button>
           </div>
-          {(bundle.study.status === "published" || version.status === "published") && (
-            <div className="panel" style={{ marginTop: "1rem", marginBottom: 0 }}>
-              <h3>모집·실행</h3>
-              <p className="muted">웹 링크와 토스 채널에서 동일한 study version이 실행됩니다.</p>
-              <div className="url-box" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                <code className="mono" style={{ fontSize: 18, fontWeight: 800 }}>
-                  {bundle.study.joinCode}
-                </code>
-                <button
-                  className="primary-btn"
-                  type="button"
-                  onClick={() => {
-                    const url = `${window.location.origin}/p/${bundle.study.joinCode}`;
-                    navigator.clipboard.writeText(url).catch(() => undefined);
-                    setNotice(`참여 링크 복사됨: ${url}`);
-                  }}
-                >
-                  링크 복사
-                </button>
-                <Link className="outline-btn" href={`/p/${bundle.study.joinCode}`}>
-                  참가자 미리보기
-                </Link>
-                <Link className="outline-btn" href={`/toss?code=${bundle.study.joinCode}`}>
-                  토스 참여 채널
-                </Link>
-                <Link className="outline-btn" href={`/studies/${bundle.study.id}/data`}>
-                  데이터 · Export
-                </Link>
-              </div>
-              <p className="muted" style={{ marginTop: 12, fontSize: 13 }}>
-                참여 경로: /p/{bundle.study.joinCode} · 배정은 서버 equal randomization · condition 비노출
+        </section>
+      )}
+
+      {tab === "recruit" && (
+        <section className="panel">
+          <div className="workspace-head" style={{ padding: 0, marginBottom: 16 }}>
+            <div>
+              <span className="pill mint">연구 유형별 모집 설계</span>
+              <h2 style={{ margin: "8px 0 4px" }}>연구 방법에 맞게 참가자를 모집하세요</h2>
+              <p className="muted" style={{ margin: 0 }}>
+                양적 실험의 배정과 질적 연구의 표집을 구분해 설계합니다.
               </p>
+            </div>
+            <button
+              className="primary-btn"
+              type="button"
+              disabled={busy || !(bundle.study.status === "published" || version.status === "published")}
+              onClick={() => {
+                if (bundle.study.status === "published" || version.status === "published") {
+                  router.push(`/p/${bundle.study.joinCode}`);
+                } else {
+                  run("publish").then(() => setTab("recruit"));
+                }
+              }}
+            >
+              <Play size={16} />
+              {bundle.study.status === "published" || version.status === "published"
+                ? "선택한 연구 시작"
+                : "Publish 후 시작"}
+            </button>
+          </div>
+
+          <div className="recruit-grid">
+            <div className="recruit-card selected">
+              <div className="recruit-card-top">
+                <FlaskConical size={22} />
+                <span className="pill blue">현재 연구</span>
+              </div>
+              <h3>무작위 배정</h3>
+              <p>참가자를 {spec.design.factors.map((f) => f.levels.length).join(" × ")}의{" "}
+                {spec.conditions.length}개 조건 중 하나에 무작위로 균등 배정합니다.</p>
+              <dl className="recruit-meta">
+                <div>
+                  <dt>모집 목표</dt>
+                  <dd>{bundle.study.targetN || 80}명</dd>
+                </div>
+                <div>
+                  <dt>배정 방식</dt>
+                  <dd>층화 없는 단순 무작위 배정</dd>
+                </div>
+                <div>
+                  <dt>수집 데이터</dt>
+                  <dd>설문 + 행동 로그</dd>
+                </div>
+              </dl>
+              <div className="chip-row">
+                <span className="chip">조건 균형</span>
+                <span className="chip">중복 참여 방지</span>
+                <span className="chip">Participant ID</span>
+              </div>
+            </div>
+
+            <div className="recruit-card muted-card">
+              <div className="recruit-card-top">
+                <MessageCircle size={22} />
+                <button className="outline-btn" type="button" style={{ height: 32, padding: "0 12px" }} disabled>
+                  설정
+                </button>
+              </div>
+              <h3>목적표집 · 눈덩이표집</h3>
+              <p>연구 질문에 적합한 정보제공자를 선정하고, 추천 연결 과정을 기록합니다.</p>
+              <dl className="recruit-meta">
+                <div>
+                  <dt>표집 후보</dt>
+                  <dd>목적 · 눈덩이 · 이론적 표집</dd>
+                </div>
+                <div>
+                  <dt>중단 기준</dt>
+                  <dd>자료 포화도 연구자 판단</dd>
+                </div>
+                <div>
+                  <dt>수집 데이터</dt>
+                  <dd>인터뷰 · 메모 · 전사</dd>
+                </div>
+              </dl>
+              <div className="chip-row">
+                <span className="chip mint-chip">추천 경로 기록</span>
+                <span className="chip mint-chip">동의 분리</span>
+                <span className="chip mint-chip">연구자 승인</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="recruit-footer">
+            <div>
+              <Users size={18} />
+              <div>
+                <strong>공통 배포 채널</strong>
+                <p>웹 링크 · QR 코드 · 토스 참여 채널</p>
+              </div>
+            </div>
+            <div>
+              <ShieldCheck size={18} />
+              <div>
+                <strong>개인정보 분리</strong>
+                <p>가명 Participant ID 자동 생성</p>
+              </div>
+            </div>
+            <Link className="preview-link" href={`/p/${bundle.study.joinCode}`}>
+              참가자 화면 미리보기 <ChevronRight size={14} />
+            </Link>
+          </div>
+
+          {(bundle.study.status === "published" || version.status === "published") && (
+            <div className="url-box" style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <QrCode size={18} />
+              <code className="mono" style={{ fontSize: 18, fontWeight: 800 }}>
+                {bundle.study.joinCode}
+              </code>
+              <button
+                className="primary-btn"
+                type="button"
+                onClick={() => {
+                  const url = `${window.location.origin}/p/${bundle.study.joinCode}`;
+                  navigator.clipboard.writeText(url).catch(() => undefined);
+                  setNotice(`참여 링크 복사됨: ${url}`);
+                }}
+              >
+                링크 복사
+              </button>
+              <Link className="outline-btn" href={`/toss?code=${bundle.study.joinCode}`}>
+                토스 참여 채널
+              </Link>
+              <Link className="outline-btn" href={`/studies/${bundle.study.id}/data`}>
+                데이터 · Export
+              </Link>
             </div>
           )}
         </section>

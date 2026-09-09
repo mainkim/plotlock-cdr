@@ -79,11 +79,14 @@ function SidebarNav() {
       activeWhen: () => !!pathname?.startsWith("/studies/") && tab === "publish"
     },
     {
-      href: joinCode ? `/toss?code=${joinCode}` : studyBase ? `${studyBase}?tab=publish` : "/toss",
+      href: studyBase ? `${studyBase}?tab=recruit` : joinCode ? `/toss?code=${joinCode}` : "/toss",
       id: "launch",
       icon: Play,
       label: "모집·실행",
-      activeWhen: () => pathname?.startsWith("/toss") || pathname?.startsWith("/p/")
+      activeWhen: () =>
+        pathname?.startsWith("/toss") ||
+        pathname?.startsWith("/p/") ||
+        (!!pathname?.startsWith("/studies/") && tab === "recruit")
     }
   ] as const;
 
