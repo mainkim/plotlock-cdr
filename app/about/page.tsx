@@ -1,8 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
 import { AppShell } from "@/components/AppShell";
+import { HaebomExampleCard, HAEBOM_LIVE_EXAMPLE } from "@/components/HaebomExample";
 
 export default function AboutPage() {
   return (
@@ -32,10 +31,23 @@ export default function AboutPage() {
           해봄은 Qualtrics/Typeform류 폼 빌더가 아닙니다. 조건별 온라인 행동실험과 설문·행동 로그를 Participant ID로
           연결합니다.
         </p>
-        <div className="notice">원페이저 로고 원본을 재가공하지 않고 이미지 자산으로 직접 사용합니다.</div>
-        <div style={{ marginTop: "1rem" }}>
+      </section>
+
+      <section className="panel">
+        <h2>해봄으로 만든 예시</h2>
+        <p className="muted">발표·데모에서 “실제로 나온 참가자 앱”을 보여줄 때 이 링크를 쓰면 됩니다.</p>
+        <div className="study-grid">
+          <HaebomExampleCard />
+        </div>
+        <p className="muted" style={{ marginTop: 12, fontSize: 12 }}>
+          URL: {HAEBOM_LIVE_EXAMPLE.href}
+        </p>
+        <div style={{ marginTop: "1rem", display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link className="btn" href="/studies/new">
             데모 시작
+          </Link>
+          <Link className="outline-btn" href="/demo">
+            60초 플로우
           </Link>
         </div>
       </section>

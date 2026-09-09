@@ -7,6 +7,12 @@
 - 요금 목업: https://haebom-research.vercel.app/pricing
 - GitHub: https://github.com/mainkim/plotlock-cdr (`main`)
 
+## 해봄으로 만든 예시 (참가자 앱)
+
+- **운동 계획 도우미**: https://exercise-demo-xi.vercel.app/
+- 생성형 AI 운동계획 · 개인화 × 어조 실험 런타임
+- 발표에서 “해봄으로 실제로 만든 연구 앱” 예시로 사용
+
 ## Research
 
 1. `/` 또는 `/studies/new` — 연구 아이디어 자연어 입력

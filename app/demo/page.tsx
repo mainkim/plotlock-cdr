@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChevronRight, Play, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { HaebomExampleBanner, HaebomExampleCard } from "@/components/HaebomExample";
 import { api } from "@/lib/client-api";
 
 const STEPS = [
@@ -78,6 +79,16 @@ export default function DemoPage() {
       </div>
 
       {error ? <div className="alert alert-danger">{error}</div> : null}
+
+      <HaebomExampleBanner />
+
+      <div className="panel">
+        <h2 style={{ marginTop: 0 }}>해봄으로 만든 실제 예시</h2>
+        <p className="muted">플랫폼 데모 전에 참가자 앱 결과물을 먼저 보여주세요.</p>
+        <div className="study-grid">
+          <HaebomExampleCard compact />
+        </div>
+      </div>
 
       <div className="panel">
         <h2 style={{ marginTop: 0 }}>시연 스크립트</h2>

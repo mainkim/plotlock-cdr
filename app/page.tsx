@@ -14,6 +14,7 @@ import {
   WandSparkles
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { HaebomExampleBanner, HaebomExampleCard } from "@/components/HaebomExample";
 import { api, listStudiesApi } from "@/lib/client-api";
 
 type StudyRow = {
@@ -119,6 +120,8 @@ export default function HomePage() {
 
       {message ? <div className="alert alert-ok">{message}</div> : null}
 
+      <HaebomExampleBanner />
+
       <div className="composer-card">
         <div className="ai-orb">
           <Sparkles size={21} />
@@ -171,6 +174,10 @@ export default function HomePage() {
         <Link href="/studies/new">
           전체 보기 <ChevronRight size={16} />
         </Link>
+      </div>
+
+      <div className="study-grid" style={{ marginBottom: 16 }}>
+        <HaebomExampleCard />
       </div>
 
       {!studies.length ? (
