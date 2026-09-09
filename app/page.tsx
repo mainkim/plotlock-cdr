@@ -105,7 +105,7 @@ export default function HomePage() {
         <div>
           <span className="pill mint">연구자 워크스페이스</span>
           <h1>어떤 연구를 앱으로 만들까요?</h1>
-          <p>연구계획서와 선행연구를 올리면 AI가 실행 가능한 구조를 먼저 제안합니다.</p>
+          <p>연구 질문을 넣으면 AI가 OpenAlex에서 논문을 찾고, 그 자료만으로 실험 초안을 만듭니다.</p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link className="outline-btn" href="/demo">
@@ -127,10 +127,9 @@ export default function HomePage() {
           <Sparkles size={21} />
         </div>
         <div className="composer-copy">
-          <strong>연구계획서와 선행연구를 올려주세요.</strong>
+          <strong>가설을 말하면 문헌부터 찾습니다.</strong>
           <span>
-            지도교수님의 피드백을 통째로 붙여넣어도 좋습니다. AI는 초안만 만들고 타당성을 보장하지
-            않습니다.
+            OpenAlex 검색 → 자료실 → RAG 자극 초안. AI는 타당성·IRB·논문 통과를 보장하지 않습니다.
           </span>
         </div>
         <textarea aria-label="연구 설명" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
@@ -161,7 +160,7 @@ export default function HomePage() {
           </button>
           <button className="primary" type="button" onClick={startAi} disabled={busy || !prompt.trim()}>
             <WandSparkles size={17} />
-            AI 연구 설계 시작
+            {busy ? "문헌 검색·초안 생성 중…" : "AI 연구 설계 시작"}
           </button>
         </div>
       </div>

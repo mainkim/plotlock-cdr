@@ -91,6 +91,17 @@ export async function fetchOpenAlexWorksByIds(ids: string[], limit = 12): Promis
   return results.map(mapWork);
 }
 
+/** Keyword / natural-language search (no API key). */
+export async function searchOpenAlexWorks(query: string, perPage = 8): Promise<OpenAlexWorkLite[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const raw = await openAlexGet(
+    `/works?search=${encodeURIComponent(q)}&per-page=${Math.min(25, Math.max(1, perPage))}&sort=cited_by_count:desc&select=id,doi,display_name,publication_year,authorships,abstract_inverted_index,cited_by_count,referenced_works`
+  );
+  const results = (raw.results as Record<string, unknown>[] | undefined) ?? [];
+  return results.map(mapWork);
+}
+
 /** Papers that cite this OpenAlex work id */
 export async function fetchOpenAlexCitingWorks(openAlexId: string, perPage = 8): Promise<OpenAlexWorkLite[]> {
   const id = openAlexId.replace("https://openalex.org/", "");

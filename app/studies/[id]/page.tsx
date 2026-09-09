@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { api } from "@/lib/client-api";
-import type { ConditionDiffWarning, QaReport, Study, StudyVersion } from "@/lib/types";
+import type { ConditionDiffWarning, QaReport, Study, StudyVersion, AiToolCall } from "@/lib/types";
 
 type LineageGraph = {
   nodes: Array<{
@@ -79,6 +79,7 @@ function StudyPageInner() {
     citesSourceId: ""
   });
   const [doiExpand, setDoiExpand] = useState("");
+  const [litQuery, setLitQuery] = useState("");
   const [groundQuery, setGroundQuery] = useState("");
   const [groundPreview, setGroundPreview] = useState<{
     note: string;
@@ -137,6 +138,13 @@ function StudyPageInner() {
         setNotice(
           `계보 확장: ${r.seed?.title ?? "논문"} · +${r.addedCount ?? 0}편 · 엣지 ${r.edgesAdded ?? 0} (${(r.providers ?? []).join(", ") || "—"})${warn}`
         );
+      } else if (action === "search_literature") {
+        const r = result as { found?: number; query?: string };
+        setNotice(`OpenAlex 검색 “${r.query ?? ""}” · 결과 ${r.found ?? 0}편`);
+      } else if (action === "run_literature_copilot") {
+        const r = result as { papers?: number; toolCalls?: AiToolCall[] };
+        const ok = (r.toolCalls ?? []).filter((c) => c.status === "ok").length;
+        setNotice(`문헌 코파일럿: 자료 ${r.papers ?? 0}편 · 도구 ${ok}건 성공`);
       } else {
         setNotice("저장되었습니다.");
       }
@@ -235,6 +243,37 @@ function StudyPageInner() {
           <div className="alert alert-warn">
             AI 메모: {spec.aiMeta?.note || "초안입니다. 타당성을 보장하지 않습니다."}
           </div>
+          {spec.aiMeta?.literatureQuery ? (
+            <p className="muted">OpenAlex 검색어: {spec.aiMeta.literatureQuery}</p>
+          ) : null}
+          {(spec.aiMeta?.toolCalls?.length ?? 0) > 0 ? (
+            <div className="tool-trace" style={{ margin: "16px 0" }}>
+              <h3 style={{ marginTop: 0 }}>AI 도구 사용</h3>
+              <p className="muted" style={{ marginTop: 0 }}>
+                템플릿만 쓰지 않고 OpenAlex·RAG를 호출한 기록입니다.
+              </p>
+              <ul className="tool-trace-list">
+                {(spec.aiMeta?.toolCalls ?? []).map((call, i) => (
+                  <li key={`${call.tool}-${i}`}>
+                    <span className={`pill ${call.status === "ok" ? "mint" : call.status === "error" ? "amber" : "gray"}`}>
+                      {call.tool}
+                    </span>
+                    <div>
+                      <strong>{call.status}</strong>
+                      <p className="muted" style={{ margin: "4px 0 0" }}>
+                        {call.input}
+                      </p>
+                      <p style={{ margin: "4px 0 0" }}>{call.outputSummary}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="alert alert-ok">
+              문헌 도구를 아직 쓰지 않았습니다. 자료·계보 탭에서 OpenAlex 검색 또는 문헌 코파일럿을 실행하세요.
+            </div>
+          )}
           <h3>reviewRequired</h3>
           <ul>
             {spec.reviewRequired.map((r) => (
@@ -243,9 +282,19 @@ function StudyPageInner() {
               </li>
             ))}
           </ul>
-          <button className="primary-btn" type="button" onClick={() => setTab("sources")}>
-            자료·계보 (RAG)로 이동 →
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              className="outline-btn"
+              type="button"
+              disabled={busy}
+              onClick={() => run("run_literature_copilot", { query: spec.aiMeta?.sourcePrompt })}
+            >
+              문헌 코파일럿 다시 실행
+            </button>
+            <button className="primary-btn" type="button" onClick={() => setTab("sources")}>
+              자료·계보 (RAG)로 이동 →
+            </button>
+          </div>
         </section>
       )}
 
@@ -269,8 +318,41 @@ function StudyPageInner() {
               >
                 데모 논문 시드
               </button>
+              <button
+                className="outline-btn"
+                type="button"
+                disabled={busy}
+                onClick={() => run("run_literature_copilot", { query: groundQuery || spec.aiMeta?.sourcePrompt })}
+              >
+                문헌 코파일럿
+              </button>
               <button className="primary-btn" type="button" onClick={() => setTab("conditions")}>
                 조건·자극으로 →
+              </button>
+            </div>
+          </div>
+
+          <div className="checklist-card" style={{ marginBottom: 16 }}>
+            <h3 style={{ marginTop: 0 }}>키워드로 문헌 검색 (OpenAlex)</h3>
+            <p className="muted" style={{ marginTop: 0 }}>
+              DOI가 없어도 연구 질문으로 논문을 찾아 자료실에 넣습니다.
+            </p>
+            <div className="field" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <label style={{ flex: "1 1 240px", marginBottom: 0 }}>
+                검색어
+                <input
+                  value={litQuery}
+                  onChange={(e) => setLitQuery(e.target.value)}
+                  placeholder="recommendation explanation trust"
+                />
+              </label>
+              <button
+                className="primary-btn"
+                type="button"
+                disabled={busy || !litQuery.trim()}
+                onClick={() => run("search_literature", { query: litQuery.trim() })}
+              >
+                OpenAlex 검색
               </button>
             </div>
           </div>
@@ -652,6 +734,11 @@ function StudyPageInner() {
                     <div className={`tone-chip ${stim.tone === "warm" ? "warm" : "neutral"}`}>
                       {stim.tone === "warm" ? "표현: 온화" : "표현: 중립"} · CTA “{stim.ctaLabel}”
                     </div>
+                    {(stim.groundedCitations?.length ?? 0) > 0 ? (
+                      <p className="muted" style={{ margin: "8px 0 0", fontSize: 12 }}>
+                        RAG 근거: {stim.groundedCitations!.map((c) => c.sourceTitle).join(" · ")}
+                      </p>
+                    ) : null}
                     <p className="muted" style={{ margin: "8px 0 0", fontSize: 12 }}>
                       {stim.criteriaButtonLabel}
                     </p>

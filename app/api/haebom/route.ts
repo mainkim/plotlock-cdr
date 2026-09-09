@@ -20,6 +20,8 @@ import {
   publishStudy,
   recordConsent,
   removeStudySource,
+  runStudyLiteratureCopilot,
+  searchStudyLiterature,
   seedDemoStudy,
   seedSourceLibrary,
   submitForReview,
@@ -200,6 +202,15 @@ export async function POST(req: Request) {
             similarLimit: body.similarLimit
           })
         );
+      }
+      case "search_literature": {
+        if (!body.query || typeof body.query !== "string") {
+          return NextResponse.json({ error: "query required" }, { status: 400 });
+        }
+        return NextResponse.json(await searchStudyLiterature(body.studyId, body.query));
+      }
+      case "run_literature_copilot": {
+        return NextResponse.json(await runStudyLiteratureCopilot(body.studyId, body.query));
       }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
