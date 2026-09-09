@@ -83,7 +83,12 @@ function loadPlan(): PlanState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as PlanState & { planId: string };
+    const parsed = JSON.parse(raw) as {
+      planId: string;
+      billing: PlanState["billing"];
+      startedAt: string;
+      trialEndsAt?: string;
+    };
     if (parsed.planId === "per_study") parsed.planId = "solo";
     if (parsed.planId !== "trial" && parsed.planId !== "solo" && parsed.planId !== "lab") return null;
     return parsed as PlanState;
