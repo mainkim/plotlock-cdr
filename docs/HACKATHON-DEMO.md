@@ -17,7 +17,7 @@
 
 - 용어: **RAG / Retrieval-Augmented Generation** = 노트북 LLM처럼 **넣은 자료만** 근거로 생성
 - 연구 탭 `자료·계보 (RAG)`: 논문 붙여넣기 → 검색 → 자극 초안 (코퍼스 외 거절)
-- 계보 그래프: ResearchRabbit 스타일 cites 관계
+- 계보 그래프: 컬렉션·필터·원형 노드·논문 상세 (ResearchRabbit 스타일)
 
 ## Research
 

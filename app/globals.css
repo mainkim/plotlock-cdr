@@ -525,7 +525,144 @@ button {
 
 .lineage-svg {
   width: 100%;
-  min-height: 220px;
+  min-height: 280px;
+}
+
+.lineage-explorer {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  background: #fff;
+  min-height: 520px;
+}
+
+.lineage-side,
+.lineage-detail {
+  padding: 16px;
+  background: #f8fafc;
+  border-right: 1px solid var(--line);
+}
+
+.lineage-detail {
+  border-right: 0;
+  border-left: 1px solid var(--line);
+  background: #fff;
+}
+
+.lineage-side h3,
+.lineage-detail h3,
+.lineage-detail h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.lineage-collections {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+}
+
+.lineage-collections label {
+  display: grid;
+  grid-template-columns: 16px 10px 1fr 18px;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  padding: 6px 0;
+}
+
+.col-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.col-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lineage-collections em {
+  font-style: normal;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.lineage-types {
+  border: 0;
+  padding: 0;
+  margin: 8px 0 12px;
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.lineage-canvas {
+  position: relative;
+  background: #eef3f9;
+  min-height: 520px;
+  overflow: hidden;
+}
+
+.lineage-canvas-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 0;
+  align-items: flex-start;
+}
+
+.lineage-tools {
+  display: flex;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.lineage-tools button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  color: #4b5d73;
+}
+
+.lineage-tools button.on,
+.lineage-tools button:hover {
+  background: #eef3ff;
+  color: var(--blue);
+}
+
+.lineage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.keyword-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1100px) {
+  .lineage-explorer {
+    grid-template-columns: 1fr;
+  }
+  .lineage-side,
+  .lineage-detail {
+    border: 0;
+    border-bottom: 1px solid var(--line);
+  }
 }
 
 .section-head {

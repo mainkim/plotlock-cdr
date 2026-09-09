@@ -2,13 +2,13 @@ import { assignCondition } from "./assignment";
 import { expandLineageFromDoi } from "./ai/expand-lineage";
 import { generateStudyDraft, DEMO_PROMPT } from "./ai/generator";
 import { addLineageEdge, buildLineageGraph, syncLineageFromDocuments } from "./ai/lineage";
+import { seedDemoSourceLibrary } from "./ai/demo-lineage";
 import {
   applyGroundedSuggestions,
   ensureSourceLibrary,
   getSourceLibrary,
   makeSourceDocument,
-  recommendGroundedStimuli,
-  seedDemoSourceLibrary
+  recommendGroundedStimuli
 } from "./ai/rag";
 import { enrichDraftWithLiterature, mergeWorksIntoLibrary } from "./ai/research-copilot";
 import { searchOpenAlexWorks } from "./ai/openalex";
@@ -232,7 +232,8 @@ function cloneSourceLibrary(library: SourceLibrary): SourceLibrary {
       ...d,
       citesSourceIds: d.citesSourceIds ? [...d.citesSourceIds] : []
     })),
-    edges: library.edges.map((e) => ({ ...e }))
+    edges: library.edges.map((e) => ({ ...e })),
+    collections: library.collections?.map((c) => ({ ...c }))
   };
 }
 

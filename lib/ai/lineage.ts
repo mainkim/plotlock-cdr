@@ -9,6 +9,11 @@ export type LineageNodeView = {
   authors?: string;
   year?: number;
   kind: SourceDocument["kind"];
+  shortLabel: string;
+  collectionId?: string;
+  color: string;
+  r: number;
+  isFocus: boolean;
   x: number;
   y: number;
 };
@@ -16,7 +21,21 @@ export type LineageNodeView = {
 export type LineageGraphView = {
   nodes: LineageNodeView[];
   edges: LineageEdge[];
+  focusId?: string;
+  width: number;
+  height: number;
 };
+
+export function authorYearLabel(doc: { authors?: string; year?: number; title: string }): string {
+  const last = (doc.authors ?? "")
+    .split(/[,&]/)[0]
+    .trim()
+    .split(/\s+/)
+    .slice(-1)[0];
+  if (last && doc.year) return `${last}, ${doc.year}`;
+  if (doc.year) return String(doc.year);
+  return doc.title.slice(0, 12);
+}
 
 /** Sync citesSourceIds on documents into explicit lineage edges */
 export function syncLineageFromDocuments(library: SourceLibrary): SourceLibrary {
@@ -38,18 +57,24 @@ export function syncLineageFromDocuments(library: SourceLibrary): SourceLibrary 
   return library;
 }
 
+function collectionColor(library: SourceLibrary, collectionId?: string) {
+  return library.collections?.find((c) => c.id === collectionId)?.color ?? "#316BFF";
+}
+
 /**
- * ResearchRabbit-inspired layout: older / cited works to the left,
- * citing works to the right. Purely presentational for hackathon demo.
+ * ResearchRabbit-inspired layout: focus in the center,
+ * references (cited) to the left, citing works to the right.
  */
-export function buildLineageGraph(spec: StudyDraftSpec): LineageGraphView {
+export function buildLineageGraph(spec: StudyDraftSpec, focusId?: string): LineageGraphView {
   const library = syncLineageFromDocuments({
     ...getSourceLibrary(spec),
     documents: [...getSourceLibrary(spec).documents],
     edges: [...getSourceLibrary(spec).edges]
   });
   const docs = library.documents;
-  if (!docs.length) return { nodes: [], edges: [] };
+  const width = 760;
+  const height = 460;
+  if (!docs.length) return { nodes: [], edges: [], width, height };
 
   const citedCount = new Map<string, number>();
   for (const e of library.edges) {
@@ -58,29 +83,53 @@ export function buildLineageGraph(spec: StudyDraftSpec): LineageGraphView {
     }
   }
 
-  const sorted = [...docs].sort((a, b) => {
-    const ya = a.year ?? 9999;
-    const yb = b.year ?? 9999;
-    if (ya !== yb) return ya - yb;
-    return (citedCount.get(b.id) ?? 0) - (citedCount.get(a.id) ?? 0);
-  });
+  const focus =
+    docs.find((d) => d.id === focusId) ??
+    docs.find((d) => d.authors?.startsWith("Jang")) ??
+    [...docs].sort((a, b) => (citedCount.get(b.id) ?? 0) - (citedCount.get(a.id) ?? 0))[0];
 
-  const columns = Math.max(1, Math.ceil(Math.sqrt(sorted.length)));
-  const nodes: LineageNodeView[] = sorted.map((doc, i) => {
-    const col = i % columns;
-    const row = Math.floor(i / columns);
-    return {
-      id: doc.id,
-      title: doc.title,
-      authors: doc.authors,
-      year: doc.year,
-      kind: doc.kind,
-      x: 40 + col * 180,
-      y: 36 + row * 110
-    };
-  });
+  const refs = docs.filter((d) =>
+    library.edges.some((e) => e.relation === "cites" && e.fromSourceId === focus.id && e.toSourceId === d.id)
+  );
+  const citers = docs.filter((d) =>
+    library.edges.some((e) => e.relation === "cites" && e.fromSourceId === d.id && e.toSourceId === focus.id)
+  );
+  const used = new Set([focus.id, ...refs.map((d) => d.id), ...citers.map((d) => d.id)]);
+  const others = docs.filter((d) => !used.has(d.id));
 
-  return { nodes, edges: library.edges };
+  const cx = width / 2;
+  const cy = height / 2 + 8;
+
+  const placeArc = (list: SourceDocument[], start: number, end: number, radius: number) => {
+    return list.map((doc, i) => {
+      const t = list.length === 1 ? (start + end) / 2 : start + ((end - start) * i) / Math.max(1, list.length - 1);
+      return { doc, x: cx + Math.cos(t) * radius, y: cy + Math.sin(t) * radius, r: 28 };
+    });
+  };
+
+  const placed = [
+    { doc: focus, x: cx, y: cy, r: 40, isFocus: true },
+    ...placeArc(refs, Math.PI * 0.55, Math.PI * 1.45, 168).map((p) => ({ ...p, isFocus: false })),
+    ...placeArc(citers, -Math.PI * 0.45, Math.PI * 0.45, 176).map((p) => ({ ...p, isFocus: false })),
+    ...placeArc(others, Math.PI * 0.15, Math.PI * 0.85, 230).map((p) => ({ ...p, isFocus: false }))
+  ];
+
+  const nodes: LineageNodeView[] = placed.map((p) => ({
+    id: p.doc.id,
+    title: p.doc.title,
+    authors: p.doc.authors,
+    year: p.doc.year,
+    kind: p.doc.kind,
+    shortLabel: authorYearLabel(p.doc),
+    collectionId: p.doc.collectionId,
+    color: collectionColor(library, p.doc.collectionId),
+    r: p.r,
+    isFocus: p.isFocus,
+    x: p.x,
+    y: p.y
+  }));
+
+  return { nodes, edges: library.edges, focusId: focus.id, width, height };
 }
 
 export function addLineageEdge(
@@ -103,4 +152,22 @@ export function addLineageEdge(
     note
   });
   return library;
+}
+
+export function neighborIds(edges: LineageEdge[], id: string, mode: "refs" | "citers" | "similar"): Set<string> {
+  const refs = new Set(
+    edges.filter((e) => e.relation === "cites" && e.fromSourceId === id).map((e) => e.toSourceId)
+  );
+  const citers = new Set(
+    edges.filter((e) => e.relation === "cites" && e.toSourceId === id).map((e) => e.fromSourceId)
+  );
+  if (mode === "refs") return refs;
+  if (mode === "citers") return citers;
+  const out = new Set<string>([...refs, ...citers]);
+  for (const e of edges) {
+    if (e.relation !== "related") continue;
+    if (e.fromSourceId === id) out.add(e.toSourceId);
+    if (e.toSourceId === id) out.add(e.fromSourceId);
+  }
+  return out;
 }

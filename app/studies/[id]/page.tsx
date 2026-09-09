@@ -18,6 +18,7 @@ import {
   Users
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { LineageExplorer } from "@/components/LineageExplorer";
 import { api } from "@/lib/client-api";
 import type { ConditionDiffWarning, QaReport, Study, StudyVersion, AiToolCall } from "@/lib/types";
 
@@ -28,6 +29,11 @@ type LineageGraph = {
     authors?: string;
     year?: number;
     kind: string;
+    shortLabel?: string;
+    collectionId?: string;
+    color?: string;
+    r?: number;
+    isFocus?: boolean;
     x: number;
     y: number;
   }>;
@@ -38,6 +44,9 @@ type LineageGraph = {
     relation: string;
     note?: string;
   }>;
+  focusId?: string;
+  width?: number;
+  height?: number;
 };
 
 type Bundle = {
@@ -487,69 +496,17 @@ function StudyPageInner() {
             </div>
           </div>
 
-          <div className="panel" style={{ marginTop: 16, marginBottom: 0 }}>
-            <h3 style={{ marginTop: 0 }}>논문 계보 (ResearchRabbit 스타일)</h3>
-            <p className="muted">노드 = 자료, 화살표 = cites (인용)</p>
-            {!lineage?.nodes?.length ? (
-              <p className="muted">자료를 추가하면 계보가 그려집니다.</p>
-            ) : (
-              <div className="lineage-wrap">
-                <svg
-                  className="lineage-svg"
-                  viewBox={`0 0 ${Math.max(640, ...lineage.nodes.map((n) => n.x + 160))} ${Math.max(
-                    240,
-                    ...lineage.nodes.map((n) => n.y + 80)
-                  )}`}
-                  role="img"
-                  aria-label="논문 계보 그래프"
-                >
-                  {lineage.edges.map((e) => {
-                    const from = lineage.nodes.find((n) => n.id === e.fromSourceId);
-                    const to = lineage.nodes.find((n) => n.id === e.toSourceId);
-                    if (!from || !to) return null;
-                    return (
-                      <line
-                        key={e.id}
-                        x1={from.x + 60}
-                        y1={from.y + 24}
-                        x2={to.x + 60}
-                        y2={to.y + 24}
-                        stroke="#9bb0c9"
-                        strokeWidth="2"
-                        markerEnd="url(#arrow)"
-                      />
-                    );
-                  })}
-                  <defs>
-                    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                      <path d="M0,0 L6,3 L0,6 Z" fill="#9bb0c9" />
-                    </marker>
-                  </defs>
-                  {lineage.nodes.map((n) => (
-                    <g key={n.id} transform={`translate(${n.x}, ${n.y})`}>
-                      <rect width="120" height="56" rx="12" fill="#fff" stroke="#316bff" strokeWidth="1.5" />
-                      <text x="10" y="22" fontSize="11" fill="#182033">
-                        {(n.title || "").slice(0, 14)}
-                        {(n.title || "").length > 14 ? "…" : ""}
-                      </text>
-                      <text x="10" y="40" fontSize="10" fill="#6b7c90">
-                        {n.year ?? n.kind}
-                      </text>
-                    </g>
-                  ))}
-                </svg>
-              </div>
-            )}
+          <div className="lineage-demo-block" style={{ marginTop: 16 }}>
+            <LineageExplorer
+              library={spec.sourceLibrary ?? { documents: [], edges: [], groundingMode: "rag_corpus_only" }}
+              graph={lineage}
+            />
             {(spec.sourceLibrary?.documents?.length ?? 0) >= 2 ? (
               <div className="field" style={{ marginTop: 12 }}>
                 <label>
                   인용 링크 추가 (from → to)
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <select
-                      id="link-from"
-                      defaultValue=""
-                      onChange={() => undefined}
-                    >
+                    <select id="link-from" defaultValue="">
                       <option value="" disabled>
                         인용하는 쪽
                       </option>

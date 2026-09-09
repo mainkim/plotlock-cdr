@@ -52,6 +52,16 @@ export type SourceDocument = {
   openAlexId?: string;
   semanticScholarId?: string;
   citedByCount?: number;
+  collectionId?: string;
+  venue?: string;
+  keywords?: string[];
+  literatureType?: "journal" | "thesis" | "conference" | "review";
+};
+
+export type SourceCollection = {
+  id: string;
+  name: string;
+  color: string;
 };
 
 export type SourceChunk = {
@@ -79,6 +89,7 @@ export type LineageEdge = {
 export type SourceLibrary = {
   documents: SourceDocument[];
   edges: LineageEdge[];
+  collections?: SourceCollection[];
   lastGroundedAt?: string;
   groundingMode: "rag_corpus_only";
 };
