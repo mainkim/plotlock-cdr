@@ -59,7 +59,7 @@ export default function DemoPage() {
     <AppShell>
       <div className="workspace-head">
         <div>
-          <span className="pill mint">Hackathon Demo Mode</span>
+          <span className="pill mint">Demo Mode</span>
           <h1>60초 안에 핵심 가치를 보여주세요</h1>
           <p>가설 → 실험 → 행동+설문 연결 → Export. AI는 타당성을 보장하지 않습니다. DEMO/MOCK DATA.</p>
         </div>

@@ -120,15 +120,15 @@ function ResearcherShell({ children }: { children: ReactNode }) {
         <div className="sidebar-bottom">
           <Link href="/demo">
             <Play size={18} />
-            <span>60초 데모</span>
+            <span>데모</span>
           </Link>
           <Link href="/about">
             <CircleHelp size={18} />
-            <span>해커톤 소개</span>
+            <span>소개</span>
           </Link>
           <Link href="/pricing">
             <Settings size={18} />
-            <span>수익모델 가설</span>
+            <span>요금 가설</span>
           </Link>
         </div>
       </aside>

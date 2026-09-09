@@ -9,7 +9,7 @@ export default function AboutPage() {
     <AppShell>
       <div className="page-title">
         <div>
-          <span className="pill mint">해커톤 소개</span>
+          <span className="pill mint">해봄 소개</span>
           <h1>&lt;해봄&gt;</h1>
           <p>
             사회과학 연구자의 가설을 AI로 실제 온라인 실험으로 만들고, 설문과 행동 데이터를 하나로 연결하는 노코드 연구

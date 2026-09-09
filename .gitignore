@@ -9,3 +9,4 @@ data/*.json
 dist
 coverage
 tsconfig.tsbuildinfo
+.vercel
