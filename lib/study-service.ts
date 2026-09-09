@@ -1,4 +1,5 @@
 import { assignCondition } from "./assignment";
+import { expandLineageFromDoi } from "./ai/expand-lineage";
 import { generateStudyDraft, DEMO_PROMPT } from "./ai/generator";
 import { addLineageEdge, buildLineageGraph, syncLineageFromDocuments } from "./ai/lineage";
 import {
@@ -9,6 +10,8 @@ import {
   recommendGroundedStimuli,
   seedDemoSourceLibrary
 } from "./ai/rag";
+import { enrichDraftWithLiterature, mergeWorksIntoLibrary } from "./ai/research-copilot";
+import { searchOpenAlexWorks } from "./ai/openalex";
 import { addMissingRecommendationSelect, canTransition, harmonizeCtaLabels, runQa } from "./qa";
 import { newId, nowIso, shortCode, withDb, withDbRead } from "./store";
 import type {
@@ -17,6 +20,7 @@ import type {
   ResearchEvent,
   Session,
   SourceDocument,
+  SourceLibrary,
   Study,
   StudyDraftSpec,
   StudyVersion,
@@ -51,6 +55,7 @@ export function getStudyBundle(studyId: string) {
 export async function createStudyFromPrompt(prompt: string, opts?: { title?: string; targetN?: number; isDemo?: boolean }) {
   const spec = await generateStudyDraft(prompt);
   if (opts?.title) spec.title = opts.title;
+  await enrichDraftWithLiterature(spec, prompt, { expand: false, searchLimit: 6, timeoutMs: 10_000 });
 
   return withDb((db) => {
     const studyId = newId("stu");
@@ -217,6 +222,111 @@ export function seedSourceLibrary(studyId: string) {
     spec.sourceLibrary = seedDemoSourceLibrary();
     return spec;
   });
+}
+
+function cloneSourceLibrary(library: SourceLibrary): SourceLibrary {
+  return {
+    groundingMode: library.groundingMode,
+    lastGroundedAt: library.lastGroundedAt,
+    documents: library.documents.map((d) => ({
+      ...d,
+      citesSourceIds: d.citesSourceIds ? [...d.citesSourceIds] : []
+    })),
+    edges: library.edges.map((e) => ({ ...e }))
+  };
+}
+
+/** Expand paper lineage around a DOI via OpenAlex + Semantic Scholar */
+export async function expandStudyLineageFromDoi(
+  studyId: string,
+  doi: string,
+  opts?: { refLimit?: number; citeLimit?: number; similarLimit?: number }
+) {
+  const snapshot = withDbRead((db) => {
+    const study = db.studies.find((s) => s.id === studyId);
+    if (!study) throw new Error("Study not found");
+    const version = db.versions.find((v) => v.id === study.latestDraftVersionId);
+    if (!version) throw new Error("Draft version not found");
+    if (version.status === "published") {
+      throw new Error("Published version cannot be edited. Create a new draft.");
+    }
+    return cloneSourceLibrary(getSourceLibrary(version.spec));
+  });
+
+  const expanded = await expandLineageFromDoi(snapshot, doi, opts);
+  const { study, version } = updateDraftSpec(studyId, (spec) => {
+    spec.sourceLibrary = expanded.library;
+    return spec;
+  });
+
+  return {
+    study,
+    version,
+    seed: expanded.seed,
+    addedCount: expanded.added.length,
+    edgesAdded: expanded.edgesAdded,
+    providers: expanded.providers,
+    warnings: expanded.warnings,
+    graph: buildLineageGraph(version.spec)
+  };
+}
+
+/** Keyword search on OpenAlex → add papers to the study corpus */
+export async function searchStudyLiterature(studyId: string, query: string) {
+  const q = query.trim();
+  if (!q) throw new Error("검색어를 입력해 주세요.");
+  const works = await searchOpenAlexWorks(q, 8);
+  const { study, version } = updateDraftSpec(studyId, (spec) => {
+    const library = ensureSourceLibrary(spec);
+    const added = mergeWorksIntoLibrary(library, works);
+    spec.aiMeta = {
+      mode: spec.aiMeta?.mode === "rag_grounded" ? "rag_grounded" : "tools",
+      note: spec.aiMeta?.note ?? "OpenAlex 문헌 검색",
+      sourcePrompt: spec.aiMeta?.sourcePrompt ?? spec.researchQuestion,
+      literatureQuery: q,
+      toolCalls: [
+        ...(spec.aiMeta?.toolCalls ?? []),
+        {
+          tool: "openalex_search",
+          status: added.length ? "ok" : "skipped",
+          input: q,
+          outputSummary: added.length ? `${added.length}편 추가` : works.length ? "이미 자료실에 있음" : "검색 결과 없음",
+          count: added.length
+        }
+      ]
+    };
+    return spec;
+  });
+  return {
+    study,
+    version,
+    addedCount: getSourceLibrary(version.spec).documents.length,
+    found: works.length,
+    query: q
+  };
+}
+
+/** Re-run OpenAlex + RAG tools on an existing draft */
+export async function runStudyLiteratureCopilot(studyId: string, query?: string) {
+  const snapshot = withDbRead((db) => {
+    const study = db.studies.find((s) => s.id === studyId);
+    if (!study) throw new Error("Study not found");
+    const version = db.versions.find((v) => v.id === study.latestDraftVersionId);
+    if (!version) throw new Error("Draft version not found");
+    if (version.status === "published") {
+      throw new Error("Published version cannot be edited. Create a new draft.");
+    }
+    return JSON.parse(JSON.stringify(version.spec)) as import("./types").StudyDraftSpec;
+  });
+  const prompt = query?.trim() || snapshot.aiMeta?.sourcePrompt || snapshot.researchQuestion;
+  await enrichDraftWithLiterature(snapshot, prompt, { expand: true, searchLimit: 6, timeoutMs: 12_000 });
+  const { study, version } = updateDraftSpec(studyId, () => snapshot);
+  return {
+    study,
+    version,
+    papers: snapshot.sourceLibrary?.documents.length ?? 0,
+    toolCalls: snapshot.aiMeta?.toolCalls ?? []
+  };
 }
 
 export function approveStudy(studyId: string, opts?: { forceClearBlockers?: boolean }) {

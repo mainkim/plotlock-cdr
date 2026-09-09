@@ -256,7 +256,9 @@ export function applyGroundedSuggestions(
   next.aiMeta = {
     mode: "rag_grounded",
     note: "자극은 업로드 코퍼스 기반 RAG로 갱신되었습니다. 외부 지식/환각 문장은 넣지 않도록 설계되었습니다.",
-    sourcePrompt: next.aiMeta?.sourcePrompt ?? next.researchQuestion
+    sourcePrompt: next.aiMeta?.sourcePrompt ?? next.researchQuestion,
+    literatureQuery: next.aiMeta?.literatureQuery,
+    toolCalls: next.aiMeta?.toolCalls
   };
   return next;
 }

@@ -48,6 +48,10 @@ export type SourceDocument = {
   addedAt: string;
   /** Optional ResearchRabbit-style links: this paper cites these source ids */
   citesSourceIds?: string[];
+  doi?: string;
+  openAlexId?: string;
+  semanticScholarId?: string;
+  citedByCount?: number;
 };
 
 export type SourceChunk = {
@@ -132,6 +136,15 @@ export type ReviewRequiredItem = {
   suggestedAction: string;
 };
 
+/** Trace of external/local AI tools used while drafting a study */
+export type AiToolCall = {
+  tool: "openalex_search" | "openalex_expand" | "semantic_scholar" | "rag_retrieve" | "rag_ground_stimuli";
+  status: "ok" | "skipped" | "error";
+  input: string;
+  outputSummary: string;
+  count?: number;
+};
+
 export type StudyDraftSpec = {
   title: string;
   researchQuestion: string;
@@ -149,9 +162,11 @@ export type StudyDraftSpec = {
   /** Corpus for RAG / notebook-style grounded generation */
   sourceLibrary?: SourceLibrary;
   aiMeta?: {
-    mode: "template" | "llm" | "rag_grounded";
+    mode: "template" | "llm" | "rag_grounded" | "tools";
     note: string;
     sourcePrompt: string;
+    literatureQuery?: string;
+    toolCalls?: AiToolCall[];
   };
 };
 

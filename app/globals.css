@@ -1342,3 +1342,28 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+.tool-trace-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.tool-trace-list li {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+@media (max-width: 720px) {
+  .tool-trace-list li {
+    grid-template-columns: 1fr;
+  }
+}
