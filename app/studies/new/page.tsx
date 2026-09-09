@@ -36,8 +36,8 @@ export default function NewStudyPage() {
           <span className="pill blue">AI 초안</span>
           <h1>AI에게 연구 설명하기</h1>
           <p>
-            AI는 구조화된 실험 초안만 생성합니다. 표본수·IRB·척도 출처·통계 검정은 확정하지 않고 reviewRequired로
-            남깁니다.
+            AI는 OpenAlex에서 관련 논문을 찾고, 그 코퍼스로만 자극 초안을 만듭니다. 표본수·IRB·척도 출처는
+            확정하지 않고 reviewRequired로 남깁니다.
           </p>
         </div>
       </div>
@@ -48,7 +48,7 @@ export default function NewStudyPage() {
         </div>
         <div className="composer-copy">
           <strong>자연어로 연구 목적을 설명해 주세요.</strong>
-          <span>2×2 between-subject 데모 시나리오가 미리 채워져 있습니다.</span>
+          <span>입력과 동시에 OpenAlex·RAG 도구를 호출합니다. 2×2 데모 시나리오가 미리 채워져 있습니다.</span>
         </div>
         <textarea aria-label="연구 설명" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
         <div className="upload-row">
@@ -57,7 +57,7 @@ export default function NewStudyPage() {
           </button>
           <button className="primary" type="button" onClick={generate} disabled={busy || !prompt.trim()}>
             <WandSparkles size={17} />
-            {busy ? "초안 생성 중…" : "구조화된 실험 초안 생성"}
+            {busy ? "문헌 검색·초안 생성 중…" : "구조화된 실험 초안 생성"}
           </button>
         </div>
       </div>

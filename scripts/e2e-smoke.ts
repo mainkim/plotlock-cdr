@@ -1,3 +1,5 @@
+process.env.HAEBOM_SKIP_LITERATURE = "1";
+
 /**
  * Headless E2E smoke: create → fix QA → approve → publish → join → respond → export
  */

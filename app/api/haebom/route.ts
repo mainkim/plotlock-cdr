@@ -7,6 +7,7 @@ import {
   createNewDraftFromPublished,
   createStudyFromPrompt,
   duplicateStudy,
+  expandStudyLineageFromDoi,
   getDataOverview,
   getParticipantTimeline,
   getStudyBundle,
@@ -19,6 +20,8 @@ import {
   publishStudy,
   recordConsent,
   removeStudySource,
+  runStudyLiteratureCopilot,
+  searchStudyLiterature,
   seedDemoStudy,
   seedSourceLibrary,
   submitForReview,
@@ -187,6 +190,27 @@ export async function POST(req: Request) {
       }
       case "seed_source_library": {
         return NextResponse.json(seedSourceLibrary(body.studyId));
+      }
+      case "expand_lineage": {
+        if (!body.doi || typeof body.doi !== "string") {
+          return NextResponse.json({ error: "doi required" }, { status: 400 });
+        }
+        return NextResponse.json(
+          await expandStudyLineageFromDoi(body.studyId, body.doi, {
+            refLimit: body.refLimit,
+            citeLimit: body.citeLimit,
+            similarLimit: body.similarLimit
+          })
+        );
+      }
+      case "search_literature": {
+        if (!body.query || typeof body.query !== "string") {
+          return NextResponse.json({ error: "query required" }, { status: 400 });
+        }
+        return NextResponse.json(await searchStudyLiterature(body.studyId, body.query));
+      }
+      case "run_literature_copilot": {
+        return NextResponse.json(await runStudyLiteratureCopilot(body.studyId, body.query));
       }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });

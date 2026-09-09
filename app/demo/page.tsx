@@ -10,12 +10,13 @@ import { api } from "@/lib/client-api";
 
 const STEPS = [
   { t: "0–8초", d: "한국어로 연구 아이디어 입력" },
-  { t: "8–18초", d: "AI가 2×2 연구 초안 생성" },
-  { t: "18–28초", d: "4조건 비교 · 누락 행동 측정 warning" },
-  { t: "28–35초", d: "수정 + 승인 + Publish" },
-  { t: "35–47초", d: "참가자 자극 · 클릭 · 설문" },
-  { t: "47–55초", d: "동일 Participant ID 연결 확인" },
-  { t: "55–60초", d: "CSV + Codebook export" }
+  { t: "8–16초", d: "AI가 2×2 연구 초안 + 문헌 검색" },
+  { t: "16–26초", d: "논문 계보 그래프 · 인용/피인용 탐색" },
+  { t: "26–34초", d: "4조건 비교 · 누락 행동 측정 warning" },
+  { t: "34–40초", d: "수정 + 승인 + Publish" },
+  { t: "40–50초", d: "참가자 자극 · 클릭 · 설문" },
+  { t: "50–56초", d: "동일 Participant ID 연결 확인" },
+  { t: "56–60초", d: "CSV + Codebook export" }
 ];
 
 export default function DemoPage() {
@@ -31,7 +32,7 @@ export default function DemoPage() {
       const seeded = await api<{ study: { id: string; joinCode: string } }>("seed_demo");
       const next = { studyId: seeded.study.id, joinCode: seeded.study.joinCode };
       setReady(next);
-      router.push(`/studies/${next.studyId}?tab=conditions`);
+      router.push(`/studies/${next.studyId}?tab=sources`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "데모 준비 실패");
     } finally {
@@ -108,8 +109,11 @@ export default function DemoPage() {
           <h3>바로 이어서 시연</h3>
           <p className="muted">참여 코드 {ready.joinCode}</p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Link className="primary-btn" href={`/studies/${ready.studyId}?tab=conditions`}>
-              4조건 비교부터 <ChevronRight size={16} />
+            <Link className="primary-btn" href={`/studies/${ready.studyId}?tab=sources`}>
+              논문 계보부터 <ChevronRight size={16} />
+            </Link>
+            <Link className="outline-btn" href={`/studies/${ready.studyId}?tab=conditions`}>
+              4조건 비교
             </Link>
             <Link className="outline-btn" href={`/p/${ready.joinCode}`}>
               참가자 실행
