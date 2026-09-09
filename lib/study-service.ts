@@ -581,3 +581,44 @@ export async function seedDemoStudy() {
 export function findStudyByJoinCode(code: string) {
   return withDbRead((db) => db.studies.find((s) => s.joinCode.toUpperCase() === code.toUpperCase()));
 }
+
+export function duplicateStudy(studyId: string) {
+  return withDb((db) => {
+    const source = db.studies.find((s) => s.id === studyId);
+    if (!source) throw new Error("Study not found");
+    const sourceVersion =
+      db.versions.find((v) => v.id === source.latestDraftVersionId) ??
+      db.versions.find((v) => v.id === source.currentVersionId);
+    if (!sourceVersion) throw new Error("Version not found");
+
+    const now = nowIso();
+    const newStudyId = newId("stu");
+    const newVersionId = newId("ver");
+    const study: Study = {
+      id: newStudyId,
+      title: `${source.title} (복제)`,
+      slug: shortCode(6).toLowerCase(),
+      joinCode: shortCode(8),
+      status: "draft",
+      createdAt: now,
+      updatedAt: now,
+      targetN: source.targetN,
+      currentVersionId: newVersionId,
+      latestDraftVersionId: newVersionId,
+      isDemo: false
+    };
+    const version: StudyVersion = {
+      id: newVersionId,
+      studyId: newStudyId,
+      versionNumber: 1,
+      status: "draft",
+      createdAt: now,
+      updatedAt: now,
+      spec: JSON.parse(JSON.stringify(sourceVersion.spec)),
+      qaSnapshot: runQa(sourceVersion.spec)
+    };
+    db.studies.push(study);
+    db.versions.push(version);
+    return { study, version };
+  });
+}

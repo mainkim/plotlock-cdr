@@ -1,5 +1,6 @@
 import type { DbShape, Study, StudyVersion } from "./types";
 import { withDbRead } from "./store";
+import * as XLSX from "xlsx";
 
 function csvEscape(value: unknown): string {
   const s = value == null ? "" : String(value);
@@ -17,19 +18,43 @@ function toCsv(rows: Record<string, unknown>[]): string {
   return lines.join("\n");
 }
 
+function getStudyVersion(db: DbShape, studyId: string) {
+  const study = db.studies.find((s) => s.id === studyId);
+  if (!study) throw new Error("Study not found");
+  const version =
+    db.versions.find((v) => v.id === study.currentVersionId) ??
+    db.versions.filter((v) => v.studyId === studyId).sort((a, b) => b.versionNumber - a.versionNumber)[0];
+  if (!version) throw new Error("Version not found");
+  return { study, version };
+}
+
 export function buildExports(studyId: string) {
   return withDbRead((db) => {
-    const study = db.studies.find((s) => s.id === studyId);
-    if (!study) throw new Error("Study not found");
-    const version =
-      db.versions.find((v) => v.id === study.currentVersionId) ??
-      db.versions.filter((v) => v.studyId === studyId).sort((a, b) => b.versionNumber - a.versionNumber)[0];
-    if (!version) throw new Error("Version not found");
-
+    const { study, version } = getStudyVersion(db, studyId);
     return {
       participantWide: toCsv(buildParticipantWide(db, study, version)),
       eventLong: toCsv(buildEventLong(db, study, version)),
       codebook: toCsv(buildCodebook(version))
+    };
+  });
+}
+
+/** XLSX workbook as base64 for download */
+export function buildXlsxBase64(studyId: string) {
+  return withDbRead((db) => {
+    const { study, version } = getStudyVersion(db, studyId);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(buildParticipantWide(db, study, version)),
+      "participant_wide"
+    );
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(buildEventLong(db, study, version)), "event_long");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(buildCodebook(version)), "codebook");
+    const base64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
+    return {
+      filename: `haebom_${study.slug || study.id}_export.xlsx`,
+      base64
     };
   });
 }

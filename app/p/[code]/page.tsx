@@ -105,6 +105,24 @@ function ParticipateInner() {
 
   const step = useMemo(() => runtime?.flow.find((f) => f.id === runtime.currentStepId), [runtime]);
 
+  const progressLabel = useMemo(() => {
+    if (!runtime || !step) return "";
+    const labels: Record<string, string> = {
+      consent: "참여 안내",
+      survey: step.type === "survey" ? step.title : "설문",
+      stimulus: "화면 보기",
+      behavior_task: "과제",
+      debrief: "안내",
+      complete: "완료"
+    };
+    return labels[step.type] ?? step.title;
+  }, [runtime, step]);
+
+  const stepIndex = useMemo(() => {
+    if (!runtime) return 0;
+    return Math.max(0, runtime.flow.findIndex((f) => f.id === runtime.currentStepId));
+  }, [runtime]);
+
   useEffect(() => {
     if (!runtime || !step) return;
     if (step.type === "stimulus" || step.type === "behavior_task") {
@@ -331,16 +349,32 @@ function ParticipateInner() {
   return (
     <AppShell>
       <section className="panel">
-        <p className="muted" style={{ marginTop: 0 }}>
-          해봄 참여하기 · DEMO
-        </p>
+        <span className="pill mint">해봄 참여하기</span>
         {!runtime && !error ? <p>참여 준비 중…</p> : null}
         {error ? <div className="alert alert-danger">{error}</div> : null}
         {runtime ? (
           <>
-            <h2 style={{ marginTop: 0 }}>{runtime.studyTitle}</h2>
+            <h2 style={{ marginTop: 12 }}>{runtime.studyTitle}</h2>
             <p className="mono muted">
-              Participant {runtime.participantId.slice(0, 16)}… · Session {runtime.sessionId.slice(0, 12)}…
+              Participant {runtime.participantId.slice(0, 16)}…
+            </p>
+            <div className="steps" aria-label="진행 단계">
+              {runtime.flow.map((f, i) => (
+                <span key={f.id} className={`step-chip ${i === stepIndex ? "active" : ""}`}>
+                  {f.type === "consent"
+                    ? "안내"
+                    : f.type === "stimulus" || f.type === "behavior_task"
+                      ? "화면"
+                      : f.type === "survey"
+                        ? "설문"
+                        : f.type === "debrief"
+                          ? "안내"
+                          : "완료"}
+                </span>
+              ))}
+            </div>
+            <p className="muted" style={{ fontSize: 13 }}>
+              현재: {progressLabel}
             </p>
           </>
         ) : null}
@@ -350,9 +384,9 @@ function ParticipateInner() {
         <section className="panel">
           {step.type === "consent" && (
             <>
-              <h3>참여 안내</h3>
+              <h3>참여 안내 · 동의</h3>
               <p>{runtime.consentText}</p>
-              <button className="btn" disabled={busy} onClick={onConsent}>
+              <button className="primary-btn" type="button" disabled={busy} onClick={onConsent}>
                 동의하고 시작하기
               </button>
             </>
@@ -362,7 +396,7 @@ function ParticipateInner() {
             <>
               <h3>{step.title}</h3>
               {renderMeasures(step.measureIds)}
-              <button className="btn" disabled={busy} onClick={() => onSurveySubmit(step.measureIds)}>
+              <button className="primary-btn" type="button" disabled={busy} onClick={() => onSurveySubmit(step.measureIds)}>
                 다음
               </button>
             </>
@@ -377,8 +411,9 @@ function ParticipateInner() {
               ) : null}
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "1rem" }}>
                 <button
-                  className="btn btn-secondary"
+                  className="outline-btn"
                   type="button"
+                  data-testid="criteria-button"
                   onClick={() => {
                     setCriteriaOpen(true);
                     pushEvents(runtime, [
@@ -393,7 +428,13 @@ function ParticipateInner() {
                 >
                   {runtime.stimulus.criteriaButtonLabel}
                 </button>
-                <button className="btn" disabled={busy} onClick={() => onStimulusContinue({ selected: true })}>
+                <button
+                  className="primary-btn"
+                  type="button"
+                  data-testid="recommendation-select"
+                  disabled={busy}
+                  onClick={() => onStimulusContinue({ selected: true })}
+                >
                   {runtime.stimulus.ctaLabel}
                 </button>
               </div>
@@ -410,17 +451,28 @@ function ParticipateInner() {
               <h3>{step.title}</h3>
               <p>{step.body}</p>
               <button
-                className="btn"
+                className="primary-btn"
+                type="button"
                 disabled={busy}
                 onClick={async () => {
-                  const next = await api<ParticipantRuntimePayload>("submit_step", {
-                    participantId: runtime.participantId,
-                    stepId: step.id
-                  });
-                  setRuntime(next);
+                  setBusy(true);
+                  try {
+                    await pushEvents(runtime, [
+                      { eventType: "experiment_complete", stepId: step.id, screenId: "complete" }
+                    ]);
+                    const next = await api<ParticipantRuntimePayload>("submit_step", {
+                      participantId: runtime.participantId,
+                      stepId: step.id
+                    });
+                    setRuntime(next);
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "실패");
+                  } finally {
+                    setBusy(false);
+                  }
                 }}
               >
-                확인
+                확인 · 완료
               </button>
             </>
           )}
@@ -429,12 +481,13 @@ function ParticipateInner() {
             <>
               <h3>참여가 완료되었습니다</h3>
               <p className="muted">응답과 활동 기록이 익명으로 저장되었습니다. 감사합니다.</p>
-              <button className="btn" disabled={busy || runtime.status === "completed"} onClick={finish}>
-                {runtime.status === "completed" ? "완료됨" : "완료 확정"}
-              </button>
-              <p className="mono muted" style={{ marginTop: "1rem" }}>
-                연구자 대시보드에서 이 Participant ID의 클릭·설문을 확인하세요.
-              </p>
+              {runtime.status !== "completed" ? (
+                <button className="primary-btn" type="button" disabled={busy} onClick={finish}>
+                  완료 확정
+                </button>
+              ) : (
+                <div className="alert alert-ok">완료됨 · Participant {runtime.participantId}</div>
+              )}
             </>
           )}
         </section>

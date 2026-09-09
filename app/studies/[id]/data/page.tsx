@@ -22,7 +22,7 @@ type Overview = {
     avgDuration: number;
   }>;
   participants: Array<{ id: string; sessionId: string; createdAt: string }>;
-  study: { joinCode: string; title: string };
+  study: { joinCode: string; title: string; id?: string };
 };
 
 export default function DataPage() {
@@ -30,15 +30,28 @@ export default function DataPage() {
   const [data, setData] = useState<Overview | null>(null);
   const [timeline, setTimeline] = useState<any>(null);
   const [exports, setExports] = useState<Record<string, string> | null>(null);
+  const [xlsx, setXlsx] = useState<{ filename: string; base64: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  async function refresh() {
+    const overview = await api<Overview>("data_overview", { studyId: params.id });
+    setData(overview);
+    if (overview.participants.length && !selectedId) {
+      const first = overview.participants[0].id;
+      setSelectedId(first);
+      const t = await api("timeline", { participantId: first });
+      setTimeline(t);
+    }
+  }
 
   useEffect(() => {
-    api<Overview>("data_overview", { studyId: params.id })
-      .then(setData)
-      .catch((e) => setError(e.message));
+    refresh().catch((e) => setError(e.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   async function openTimeline(participantId: string) {
+    setSelectedId(participantId);
     const t = await api("timeline", { participantId });
     setTimeline(t);
   }
@@ -46,6 +59,12 @@ export default function DataPage() {
   async function doExport() {
     const files = await api<Record<string, string>>("export", { studyId: params.id });
     setExports(files);
+    try {
+      const sheet = await api<{ filename: string; base64: string }>("export_xlsx", { studyId: params.id });
+      setXlsx(sheet);
+    } catch {
+      setXlsx(null);
+    }
   }
 
   function download(name: string, content: string) {
@@ -58,9 +77,25 @@ export default function DataPage() {
     URL.revokeObjectURL(url);
   }
 
+  function downloadXlsx() {
+    if (!xlsx) return;
+    const bin = atob(xlsx.base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = xlsx.filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (error) {
     return (
-      <AppShell>
+      <AppShell studyId={params.id}>
         <div className="alert alert-danger">{error}</div>
       </AppShell>
     );
@@ -68,55 +103,64 @@ export default function DataPage() {
 
   if (!data) {
     return (
-      <AppShell>
+      <AppShell studyId={params.id}>
         <div className="panel">데이터 불러오는 중…</div>
       </AppShell>
     );
   }
 
+  const clickEvents =
+    timeline?.events?.filter(
+      (e: any) => e.eventType === "object_click" || e.objectId === "criteria_button" || e.objectId === "recommendation_select"
+    ) ?? [];
+  const linked = clickEvents.length > 0 && (timeline?.responses?.length ?? 0) > 0;
+
   return (
-    <AppShell>
-      <section className="panel">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-          <div>
-            <h2 style={{ marginBottom: 0 }}>{data.study.title}</h2>
-            <p className="muted">연구 데이터 · DEMO/MOCK 표시 · Raw data는 삭제하지 않습니다.</p>
-          </div>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <Link className="btn btn-secondary" href={`/studies/${params.id}`}>
-              설계로
-            </Link>
-            <button className="btn" onClick={doExport}>
-              CSV + Codebook Export
-            </button>
-          </div>
+    <AppShell studyId={params.id} joinCode={data.study.joinCode}>
+      <div className="workspace-head">
+        <div>
+          <span className="pill mint">Research Dashboard</span>
+          <h1>{data.study.title}</h1>
+          <p>조건별 모집 현황 · Participant Timeline · 클릭+설문 연결 · Export · DEMO/MOCK DATA</p>
         </div>
-      </section>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <Link className="outline-btn" href={`/studies/${params.id}?tab=publish`}>
+            참여 링크
+          </Link>
+          <Link className="outline-btn" href={`/p/${data.study.joinCode}`}>
+            참가자 실행
+          </Link>
+          <button className="primary-btn" type="button" onClick={doExport}>
+            CSV / Codebook / XLSX Export
+          </button>
+        </div>
+      </div>
 
       <section className="panel">
-        <h3>A. Overview</h3>
+        <h3>Overview</h3>
         <div className="grid-4">
           <div>
-            <div className="muted">Assigned</div>
-            <strong>{data.overview.totalAssigned}</strong>
+            <div className="muted">배정</div>
+            <strong style={{ fontSize: 28 }}>{data.overview.totalAssigned}</strong>
           </div>
           <div>
-            <div className="muted">Completed</div>
-            <strong>{data.overview.totalCompleted}</strong>
+            <div className="muted">완료</div>
+            <strong style={{ fontSize: 28 }}>{data.overview.totalCompleted}</strong>
           </div>
           <div>
-            <div className="muted">Completion</div>
-            <strong>{Math.round(data.overview.completionRate * 100)}%</strong>
+            <div className="muted">완료율</div>
+            <strong style={{ fontSize: 28 }}>{Math.round(data.overview.completionRate * 100)}%</strong>
           </div>
           <div>
-            <div className="muted">Avg duration</div>
-            <strong>{Math.round(data.overview.avgDuration / 1000)}s</strong>
+            <div className="muted">평균 소요</div>
+            <strong style={{ fontSize: 28 }}>{Math.round(data.overview.avgDuration / 1000)}s</strong>
           </div>
         </div>
       </section>
 
       <section className="panel">
-        <h3>B. Condition balance</h3>
+        <h3>조건별 모집 현황</h3>
+        <p className="muted">서버 equal randomization 결과입니다. (연구자 전용)</p>
         <table className="table">
           <thead>
             <tr>
@@ -140,28 +184,45 @@ export default function DataPage() {
       </section>
 
       <section className="panel">
-        <h3>C. Participant timeline</h3>
-        <p className="muted">참가자를 선택하면 동일 Participant ID의 click + survey 연결을 확인합니다.</p>
+        <h3>Participant Timeline</h3>
+        <p className="muted">동일 Participant ID로 클릭 이벤트와 설문 응답이 연결되는지 확인하세요.</p>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", margin: "0.75rem 0" }}>
           {data.participants.map((p) => (
-            <button key={p.id} className="btn btn-secondary" onClick={() => openTimeline(p.id)}>
-              {p.id.slice(0, 14)}…
+            <button
+              key={p.id}
+              className={selectedId === p.id ? "primary-btn" : "outline-btn"}
+              type="button"
+              onClick={() => openTimeline(p.id)}
+            >
+              {p.id.slice(0, 16)}…
             </button>
           ))}
-          {!data.participants.length ? <span className="muted">아직 참가자가 없습니다.</span> : null}
+          {!data.participants.length ? (
+            <span className="muted">
+              아직 참가자가 없습니다. <Link href={`/p/${data.study.joinCode}`}>참여 링크</Link>로 실행해 보세요.
+            </span>
+          ) : null}
         </div>
 
         {timeline ? (
           <div>
+            {linked ? (
+              <div className="alert alert-ok">
+                연결 확인: Participant <span className="mono">{timeline.participant.id}</span> 에 click(
+                {clickEvents.length}) + survey({timeline.responses.length}) 가 동일 ID로 연결됨
+              </div>
+            ) : (
+              <div className="alert alert-warn">클릭 또는 설문 중 일부가 아직 없습니다.</div>
+            )}
             <p>
               <strong>Participant</strong> <span className="mono">{timeline.participant.id}</span>
               <br />
               <strong>Assigned condition</strong> {timeline.condition?.label}{" "}
-              <span className="muted">(연구자 전용 표시)</span>
+              <span className="muted">(연구자 전용 · 참가자 화면에는 비노출)</span>
               <br />
               <strong>Stimulus shown</strong> {timeline.stimulusShown?.title}
             </p>
-            <h4>Event timeline</h4>
+            <h4>Event timeline (클릭 포함)</h4>
             <div className="timeline">
               {timeline.events.map((e: any) => (
                 <div key={e.eventId} className="timeline-item">
@@ -199,7 +260,7 @@ export default function DataPage() {
                 </div>
               ))
             ) : (
-              <p className="muted">플래그 없음</p>
+              <p className="muted">플래그 없음 · Raw data는 삭제하지 않습니다.</p>
             )}
           </div>
         ) : null}
@@ -207,20 +268,25 @@ export default function DataPage() {
 
       {exports ? (
         <section className="panel">
-          <h3>Export</h3>
+          <h3>CSV / Codebook / XLSX Export</h3>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <button className="btn" onClick={() => download("participant_wide.csv", exports.participantWide)}>
+            <button className="btn" type="button" onClick={() => download("participant_wide.csv", exports.participantWide)}>
               participant_wide.csv
             </button>
-            <button className="btn" onClick={() => download("event_long.csv", exports.eventLong)}>
+            <button className="btn" type="button" onClick={() => download("event_long.csv", exports.eventLong)}>
               event_long.csv
             </button>
-            <button className="btn" onClick={() => download("codebook.csv", exports.codebook)}>
+            <button className="btn" type="button" onClick={() => download("codebook.csv", exports.codebook)}>
               codebook.csv
             </button>
+            {xlsx ? (
+              <button className="primary-btn" type="button" onClick={downloadXlsx}>
+                {xlsx.filename}
+              </button>
+            ) : null}
           </div>
           <pre className="mono" style={{ whiteSpace: "pre-wrap", maxHeight: 220, overflow: "auto" }}>
-            {exports.participantWide.slice(0, 800)}
+            {exports.participantWide.slice(0, 900)}
           </pre>
         </section>
       ) : null}

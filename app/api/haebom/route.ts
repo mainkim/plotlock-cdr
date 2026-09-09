@@ -4,6 +4,7 @@ import {
   approveStudy,
   createNewDraftFromPublished,
   createStudyFromPrompt,
+  duplicateStudy,
   getDataOverview,
   getParticipantTimeline,
   getStudyBundle,
@@ -18,7 +19,7 @@ import {
   updateDraftSpec,
   getRuntime
 } from "@/lib/study-service";
-import { buildExports } from "@/lib/export";
+import { buildExports, buildXlsxBase64 } from "@/lib/export";
 import { compareConditions, runQa } from "@/lib/qa";
 import { DEMO_PROMPT } from "@/lib/ai/generator";
 
@@ -138,6 +139,13 @@ export async function POST(req: Request) {
       case "export": {
         const files = buildExports(body.studyId);
         return NextResponse.json(files);
+      }
+      case "export_xlsx": {
+        const xlsx = buildXlsxBase64(body.studyId);
+        return NextResponse.json(xlsx);
+      }
+      case "duplicate": {
+        return NextResponse.json(duplicateStudy(body.studyId));
       }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });

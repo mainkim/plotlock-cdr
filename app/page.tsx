@@ -84,10 +84,15 @@ export default function HomePage() {
           <h1>어떤 연구를 앱으로 만들까요?</h1>
           <p>연구계획서와 선행연구를 올리면 AI가 실행 가능한 구조를 먼저 제안합니다.</p>
         </div>
-        <button className="outline-btn" type="button" onClick={seedDemo} disabled={busy}>
-          <BookOpen size={17} />
-          {busy ? "데모 준비 중…" : "60초 데모 시드"}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Link className="outline-btn" href="/demo">
+            <BookOpen size={17} />
+            60초 데모
+          </Link>
+          <button className="primary-btn" type="button" onClick={seedDemo} disabled={busy}>
+            {busy ? "데모 준비 중…" : "데모 시드 · Publish"}
+          </button>
+        </div>
       </div>
 
       {message ? <div className="alert alert-ok">{message}</div> : null}

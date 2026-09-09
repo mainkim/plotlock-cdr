@@ -80,14 +80,14 @@ function StudyPageInner() {
 
   if (!bundle || !spec || !version) {
     return (
-      <AppShell>
+      <AppShell studyId={params.id}>
         <div className="panel">{error ? <div className="alert alert-danger">{error}</div> : "불러오는 중…"}</div>
       </AppShell>
     );
   }
 
   return (
-    <AppShell>
+    <AppShell studyId={bundle.study.id} joinCode={bundle.study.joinCode}>
       <div className="workspace-head">
         <div>
           <span className={`pill ${version.status === "published" ? "mint" : version.status === "review" || version.status === "approved" ? "amber" : "blue"}`}>
@@ -155,6 +155,9 @@ function StudyPageInner() {
               </li>
             ))}
           </ul>
+          <button className="primary-btn" type="button" onClick={() => setTab("conditions")}>
+            조건 설계로 이동 →
+          </button>
         </section>
       )}
 
@@ -197,6 +200,14 @@ function StudyPageInner() {
                 </div>
               );
             })}
+          </div>
+          <div style={{ marginTop: "1rem", display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+            <button className="outline-btn" type="button" onClick={() => setTab("stimuli")}>
+              자극 편집
+            </button>
+            <button className="primary-btn" type="button" onClick={() => setTab("qa")}>
+              측정 설계로 이동 →
+            </button>
           </div>
         </section>
       )}
@@ -352,13 +363,35 @@ function StudyPageInner() {
 
       {tab === "publish" && (
         <section className="panel">
-          <h3>연구자 승인 · Version lock</h3>
+          <h3>검토·승인 · Version lock</h3>
           <p className="muted">
             Draft → Review → Approved → Published. Published 이후 직접 수정 금지. 수정 시 새 draft version.
           </p>
-          <p>
-            현재 버전: <strong>v{version.versionNumber}</strong> · {version.status}
-          </p>
+          <div className="grid-2" style={{ marginBottom: "1rem" }}>
+            <div>
+              <h4 style={{ marginTop: 0 }}>승인 체크리스트</h4>
+              <ul style={{ paddingLeft: "1.1rem", margin: 0 }}>
+                <li>선행연구/척도 출처는 연구자 확인 (AI 미확정)</li>
+                <li>조건별 의도치 않은 차이 검토</li>
+                <li className={!bundle.qa.canApprove ? "" : "muted"}>
+                  Measurement Map blocker {bundle.qa.canApprove ? "해소됨" : "남음"}
+                </li>
+                <li className="muted">표본수·IRB는 reviewRequired (연구자 책임)</li>
+                <li>개인정보와 연구데이터 분리 (Participant ID)</li>
+              </ul>
+            </div>
+            <div className="approval-card" style={{ background: "var(--navy)", color: "#fff", borderRadius: 20, padding: 24 }}>
+              <span className={`pill ${bundle.qa.canApprove ? "mint" : "amber"}`}>
+                {bundle.qa.canApprove ? "승인 가능" : "승인 대기"}
+              </span>
+              <h3 style={{ color: "#fff", margin: "12px 0" }}>
+                연구자가 승인한 설계만 실행됩니다
+              </h3>
+              <p style={{ color: "#c2cfdb", fontSize: 13 }}>
+                현재 버전 v{version.versionNumber} · {version.status}. AI는 타당성을 보장하지 않습니다.
+              </p>
+            </div>
+          </div>
           <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
             <button id="btn-submit-review" className="btn btn-secondary" type="button" disabled={busy} onClick={() => run("submit_review")}>
               Review로 제출
@@ -369,19 +402,58 @@ function StudyPageInner() {
             <button id="btn-publish" className="btn" type="button" disabled={busy} onClick={() => run("publish")}>
               Publish
             </button>
-            {bundle.current?.status === "published" ? (
-              <button className="btn btn-secondary" disabled={busy} onClick={() => run("new_draft")}>
+            <button
+              className="outline-btn"
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                const result = await run("duplicate");
+                const id = (result as { study?: { id: string } })?.study?.id;
+                if (id) router.push(`/studies/${id}?tab=design`);
+              }}
+            >
+              연구 복제
+            </button>
+            {bundle.current?.status === "published" || bundle.study.status === "published" ? (
+              <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => run("new_draft")}>
                 새 draft version 생성
               </button>
             ) : null}
           </div>
-          {bundle.study.status === "published" ? (
-            <div className="alert alert-ok" style={{ marginTop: "1rem" }}>
-              참여 링크: <Link href={`/p/${bundle.study.joinCode}`}>/p/{bundle.study.joinCode}</Link>
-              <br />
-              Toss 채널: <Link href={`/toss?code=${bundle.study.joinCode}`}>해봄 참여하기</Link>
+          {(bundle.study.status === "published" || version.status === "published") && (
+            <div className="panel" style={{ marginTop: "1rem", marginBottom: 0 }}>
+              <h3>모집·실행</h3>
+              <p className="muted">웹 링크와 토스 채널에서 동일한 study version이 실행됩니다.</p>
+              <div className="url-box" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <code className="mono" style={{ fontSize: 18, fontWeight: 800 }}>
+                  {bundle.study.joinCode}
+                </code>
+                <button
+                  className="primary-btn"
+                  type="button"
+                  onClick={() => {
+                    const url = `${window.location.origin}/p/${bundle.study.joinCode}`;
+                    navigator.clipboard.writeText(url).catch(() => undefined);
+                    setNotice(`참여 링크 복사됨: ${url}`);
+                  }}
+                >
+                  링크 복사
+                </button>
+                <Link className="outline-btn" href={`/p/${bundle.study.joinCode}`}>
+                  참가자 미리보기
+                </Link>
+                <Link className="outline-btn" href={`/toss?code=${bundle.study.joinCode}`}>
+                  토스 참여 채널
+                </Link>
+                <Link className="outline-btn" href={`/studies/${bundle.study.id}/data`}>
+                  데이터 · Export
+                </Link>
+              </div>
+              <p className="muted" style={{ marginTop: 12, fontSize: 13 }}>
+                참여 경로: /p/{bundle.study.joinCode} · 배정은 서버 equal randomization · condition 비노출
+              </p>
             </div>
-          ) : null}
+          )}
         </section>
       )}
     </AppShell>
