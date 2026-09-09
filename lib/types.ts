@@ -48,6 +48,10 @@ export type SourceDocument = {
   addedAt: string;
   /** Optional ResearchRabbit-style links: this paper cites these source ids */
   citesSourceIds?: string[];
+  doi?: string;
+  openAlexId?: string;
+  semanticScholarId?: string;
+  citedByCount?: number;
 };
 
 export type SourceChunk = {

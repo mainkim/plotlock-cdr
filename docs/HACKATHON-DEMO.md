@@ -2,9 +2,9 @@
 
 ## Live demo
 
-- Production: https://haebom-research.vercel.app
-- 60초 시드: https://haebom-research.vercel.app/demo
-- 요금 목업: https://haebom-research.vercel.app/pricing
+- Production: https://haebomresearch.vercel.app
+- 60초 시드: https://haebomresearch.vercel.app/demo
+- 요금 목업: https://haebomresearch.vercel.app/pricing
 - GitHub: https://github.com/mainkim/plotlock-cdr (`main`)
 
 ## 해봄으로 만든 예시 (참가자 앱)

@@ -171,7 +171,7 @@ export default function HomePage() {
           <h2>최근 연구</h2>
           <p>마지막 작업부터 이어서 진행하세요.</p>
         </div>
-        <Link href="/studies/new">
+        <Link href="/studies">
           전체 보기 <ChevronRight size={16} />
         </Link>
       </div>

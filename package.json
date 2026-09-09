@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0 --port 3000",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/**/*.test.ts",
+    "test": "tsx --test tests/*.test.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "demo:reset": "tsx scripts/demo-reset.ts",
     "e2e:smoke": "tsx scripts/e2e-smoke.ts"
