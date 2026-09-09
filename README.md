@@ -1,214 +1,74 @@
-# PlotLock — Spoilerless IP Prediction Markets
+# 해봄 (Haebom)
 
-**Predict the ending without seeing the crowd. Reveal only after the story does.**
+**가설에서 데이터까지, 코딩 없이.**
 
-PlotLock is a Story CDR hackathon app concept for spoilerless prediction markets around story-based IP: comics, games, anime, novels, dramas, quests, and finales.
+사회과학 연구자의 가설을 AI로 실제 온라인 실험으로 만들고, 설문과 행동 데이터를 하나의 Participant ID로 연결하는 노코드 연구 플랫폼입니다.
 
-Fans can predict outcomes such as:
+Founder: **김해인**
 
-- Who is the traitor in Episode 8?
-- Which ending will become canon?
-- Which couple will survive the finale?
-- Which character is the hidden boss?
-
-Unlike normal prediction markets, PlotLock does **not** show live vote distribution. Early votes can create herding, and live odds can become spoilers. PlotLock stores only public-safe commitments on-chain and keeps the actual prediction payloads encrypted with CDR until the story reveal condition is satisfied.
+> DEMO / MOCK DATA — AI는 연구 타당성·IRB·논문 통과를 보장하지 않습니다.
 
 ---
 
-## Why this needs CDR
+## 60초 데모 플로우
 
-Normal prediction markets leak the crowd:
-
-```text
-Rina 72%
-Joon 10%
-Mira 12%
-No traitor 6%
-```
-
-For story IP, that is a spoiler. It also makes later users follow the early majority.
-
-PlotLock changes the pattern:
-
-```text
-Public before reveal:
-- market question
-- participant count
-- total pool
-- commitment hashes
-- CDR vault references
-
-Private until reveal:
-- selected option
-- confidence score
-- fan reasoning
-- official answer proof
-- post-reveal insight report
-```
-
-CDR is the core product primitive: predictions and outcome proofs stay encrypted until the read condition passes.
-
----
-
-## Demo flow
-
-The included UI is a clickable browser demo using a local `mockCdr` adapter that simulates CDR-style sealed vault UX with Web Crypto. This lets judges understand the full product flow without needing a funded wallet.
-
-1. Creator seals the official outcome proof.
-2. Fan submits a prediction.
-3. The app stores a public commitment hash, not the selected option.
-4. User tries to view live results.
-5. Read fails because the market is still open.
-6. Creator closes the market to simulate episode release.
-7. CDR reveal decrypts the outcome, predictions, and post-reveal insights.
-
-The real CDR integration boundary is documented in `src/lib/realCdr.ts` and the CDR smoke-test script is in `scripts/ownerOnlySecret.ts`.
-
----
-
-## Architecture
-
-### Public contract layer
-
-`contracts/PlotLockMarket.sol` stores:
-
-- market creator
-- IP asset hash
-- options hash
-- question
-- deadline
-- participant count
-- prediction commitment hash
-- CDR vault reference hash
-- market status
-
-It intentionally does **not** store:
-
-- selected option
-- live distribution
-- answer key
-- fan reasoning
-- spoiler comments
-
-This is important because CDR protects encrypted payloads, but public contract metadata must also avoid leaking spoilers.
-
-### CDR vault layer
-
-PlotLock uses three vault types:
-
-#### 1. Prediction Vault
-
-Encrypted fan payload:
-
-```json
-{
-  "marketId": "cyber-academy-ep8-traitor",
-  "wallet": "0x...",
-  "selectedOption": "Rina",
-  "confidence": 76,
-  "reasoning": "Rina disappeared during the warehouse scene.",
-  "salt": "random-secret"
-}
-```
-
-Public contract only stores:
-
-```text
-commitment = hash(marketId, wallet, selectedOption, salt)
-vaultRefHash = hash(cdrVaultId)
-```
-
-#### 2. Outcome Vault
-
-Encrypted creator proof:
-
-```json
-{
-  "correctAnswer": "Rina",
-  "proof": "Episode 8 timestamp 18:42",
-  "creatorSignature": "0x..."
-}
-```
-
-#### 3. Insight Vault
-
-Post-reveal fan insight data for IP owners:
-
-```json
-{
-  "distribution": {
-    "Rina": 42,
-    "Joon": 25,
-    "Mira": 20,
-    "No traitor": 13
-  },
-  "topClue": "Warehouse scene disappearance"
-}
-```
-
-This can become a CDR-powered data marketplace for IP owners, studios, writers, and fandom teams.
-
----
-
-## Run locally
+1. `/studies/new` — 한국어로 연구 아이디어 입력
+2. AI가 2×2 between-subject 초안 생성
+3. 4조건 비교 + Measurement Map QA (누락 행동 측정 warning)
+4. 수정 → Review → Approve → Publish
+5. `/p/{joinCode}` 참가: 자극 · 버튼 클릭 · 설문
+6. `/studies/{id}/data` — 동일 Participant ID에 click + survey 연결 확인
+7. `participant_wide.csv` / `event_long.csv` / `codebook.csv` export
 
 ```bash
 npm install
+npm run demo:reset
 npm run dev
 ```
 
-Open the local URL printed by Vite.
+Open `http://localhost:3000`
 
 ---
 
-## Real Story CDR integration plan
+## 핵심 원칙
 
-The browser demo runs in mock mode. To connect it to Story CDR on Aeneid:
-
-1. Install and configure `@piplabs/cdr-sdk` and `viem`.
-2. Call `initWasm()` once before CDR encryption/decryption.
-3. Create a `CDRClient` with `publicClient`, `walletClient`, and `apiUrl`.
-4. For prediction payloads, use a small encrypted secret flow with `uploadCDR` / `accessCDR`, or low-level `allocate` / `write` / `accessCDR`.
-5. For official answer files and insight reports, use encrypted file delivery with `uploadFile` / `downloadFile`.
-6. Use a custom read condition such as `MarketClosedReadCondition`, or Story `LicenseReadCondition` for IP-gated reveal / insight access.
-
-The smoke test script demonstrates an owner-only CDR flow:
-
-```bash
-cp .env.example .env
-# Add WALLET_PRIVATE_KEY for a funded Aeneid testnet wallet
-npm run cdr:owner-only
-```
+- Qualtrics/Typeform 대체 폼 빌더가 **아님**
+- 서버 사이드 equal randomization (client `Math.random`만으로 끝내지 않음)
+- Published study version 직접 수정 금지 → 새 draft version
+- Participant에게 condition/treatment/randomization 용어 비노출
+- 배정된 condition의 stimulus만 서버에서 전달
+- PII와 research data 분리 (email/name으로 join 금지)
+- Raw data 삭제 금지 → Quality Flag → Review → Inclusion
 
 ---
 
-## Hackathon submission text
+## Scripts
 
-### Title
-
-**PlotLock — Spoilerless IP Prediction Markets**
-
-### One-liner
-
-A spoilerless prediction market for story IP where fans commit predictions before a story release, but live vote distribution, reasoning, and outcome proofs stay encrypted with CDR until reveal.
-
-### CDR usage
-
-PlotLock uses CDR to encrypt prediction payloads, official outcome proofs, and post-reveal fan insight reports. The public smart contract stores only commitment hashes and vault references, so live results do not leak spoilers. When the market closes or the required Story license condition is satisfied, CDR allows authorized decryption and the app reveals the correct answer, user predictions, and insight report.
+| Command | Description |
+|---|---|
+| `npm run dev` | Next.js dev server |
+| `npm run build` | Production build |
+| `npm test` | Unit tests |
+| `npm run e2e:smoke` | Headless create→publish→join→export |
+| `npm run seed:demo` | Seed published demo study |
+| `npm run demo:reset` | Wipe DB + reseed demo |
 
 ---
 
-## Repository guide for judges
+## Stack
 
-- `src/App.tsx` — clickable PlotLock demo UX
-- `src/lib/mockCdr.ts` — local encrypted-vault simulation for demo mode
-- `src/lib/realCdr.ts` — real Story CDR integration boundary
-- `contracts/PlotLockMarket.sol` — public commitment contract design
-- `scripts/ownerOnlySecret.ts` — CDR SDK smoke-test script
-- `docs/hackathon-submission.md` — form-ready project description
+- Next.js App Router + TypeScript
+- File-backed JSON store with lock (`data/haebom.json`) for hackathon reliability
+- Deterministic AI study generator (structured JSON; optional `OPENAI_API_KEY` noted but not required)
 
 ---
 
-## Important privacy note
+## Legacy
 
-CDR protects encrypted vault contents. It does not hide public metadata such as transaction timing, vault references, contract events, or off-chain pointers that the app chooses to disclose. PlotLock therefore avoids storing selected options, option-specific vote totals, answer keys, or spoiler reasoning on-chain before reveal.
+이전 PlotLock CDR 데모는 `legacy/plotlock/`에 보존되어 있습니다.
+
+---
+
+## 수익모델 가설
+
+무료 Preview → 연구 프로젝트 단위 유료 → 연구실 구독. 참가자 보상비는 SaaS 매출과 분리. **현재 매출을 주장하지 않습니다.**

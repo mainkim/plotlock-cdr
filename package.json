@@ -1,28 +1,30 @@
 {
-  "name": "plotlock-cdr",
+  "name": "haebom",
   "version": "0.1.0",
-  "private": false,
-  "description": "Spoilerless IP prediction markets powered by Story CDR.",
-  "type": "module",
+  "private": true,
+  "description": "해봄 — 가설을 온라인 실험으로, 설문과 행동 데이터를 하나로 연결하는 노코드 연구 플랫폼",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "dev": "next dev --hostname 0.0.0.0 --port 3000",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0 --port 3000",
     "typecheck": "tsc --noEmit",
-    "cdr:owner-only": "tsx scripts/ownerOnlySecret.ts"
+    "test": "tsx --test tests/**/*.test.ts",
+    "seed:demo": "tsx scripts/seed-demo.ts",
+    "demo:reset": "tsx scripts/demo-reset.ts",
+    "e2e:smoke": "tsx scripts/e2e-smoke.ts"
   },
   "dependencies": {
-    "@piplabs/cdr-sdk": "^0.2.1",
-    "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^6.0.0",
+    "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "viem": "^2.21.0"
+    "uuid": "^11.0.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/uuid": "^10.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }
