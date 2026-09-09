@@ -1,5 +1,12 @@
 # 해봄 해커톤 시연 플로우
 
+## Live demo
+
+- Production: https://haebom-research.vercel.app
+- 60초 시드: https://haebom-research.vercel.app/demo
+- 요금 목업: https://haebom-research.vercel.app/pricing
+- GitHub: https://github.com/mainkim/plotlock-cdr (`main`)
+
 ## Research
 
 1. `/` 또는 `/studies/new` — 연구 아이디어 자연어 입력
