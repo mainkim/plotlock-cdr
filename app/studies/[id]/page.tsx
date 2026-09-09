@@ -333,10 +333,10 @@ function StudyPageInner() {
           ))}
 
           <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem", flexWrap: "wrap" }}>
-            <button className="btn" disabled={busy} onClick={() => run("apply_demo_fixes")}>
+            <button id="qa-fix-btn" className="btn" type="button" disabled={busy} onClick={() => run("apply_demo_fixes")}>
               누락 측정 수정
             </button>
-            <button className="btn btn-secondary" disabled={busy} onClick={() => setTab("publish")}>
+            <button id="qa-goto-publish" className="btn btn-secondary" type="button" disabled={busy} onClick={() => setTab("publish")}>
               승인 단계로
             </button>
           </div>
@@ -353,13 +353,13 @@ function StudyPageInner() {
             현재 버전: <strong>v{version.versionNumber}</strong> · {version.status}
           </p>
           <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
-            <button className="btn btn-secondary" disabled={busy} onClick={() => run("submit_review")}>
+            <button id="btn-submit-review" className="btn btn-secondary" type="button" disabled={busy} onClick={() => run("submit_review")}>
               Review로 제출
             </button>
-            <button className="btn btn-secondary" disabled={busy} onClick={() => run("approve")}>
+            <button id="btn-approve" className="btn btn-secondary" type="button" disabled={busy} onClick={() => run("approve")}>
               승인
             </button>
-            <button className="btn" disabled={busy} onClick={() => run("publish")}>
+            <button id="btn-publish" className="btn" type="button" disabled={busy} onClick={() => run("publish")}>
               Publish
             </button>
             {bundle.current?.status === "published" ? (

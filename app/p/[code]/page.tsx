@@ -264,29 +264,58 @@ function ParticipateInner() {
             ))}
           </div>
         ) : (
-          <div className="likert">
-            {Array.from({ length: (m.scaleMax ?? 7) - (m.scaleMin ?? 1) + 1 }, (_, i) => (m.scaleMin ?? 1) + i).map(
-              (n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className={answers[m.id] === n ? "selected" : ""}
-                  onClick={() => {
-                    setAnswers((a) => ({ ...a, [m.id]: n }));
-                    pushEvents(runtime, [
-                      {
-                        eventType: "response_change",
-                        stepId: step?.id,
-                        objectId: m.id,
-                        payload: { value: n }
-                      }
-                    ]).catch(() => undefined);
-                  }}
-                >
-                  {n}
-                </button>
-              )
-            )}
+          <div>
+            <div className="likert">
+              {Array.from({ length: (m.scaleMax ?? 7) - (m.scaleMin ?? 1) + 1 }, (_, i) => (m.scaleMin ?? 1) + i).map(
+                (n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    data-testid={`likert-${m.id}-${n}`}
+                    className={answers[m.id] === n ? "selected" : ""}
+                    onClick={() => {
+                      setAnswers((a) => ({ ...a, [m.id]: n }));
+                      pushEvents(runtime, [
+                        {
+                          eventType: "response_change",
+                          stepId: step?.id,
+                          objectId: m.id,
+                          payload: { value: n }
+                        }
+                      ]).catch(() => undefined);
+                    }}
+                  >
+                    {n}
+                  </button>
+                )
+              )}
+            </div>
+            <div className="likert-native" role="radiogroup" aria-label={m.questionText}>
+              {Array.from({ length: (m.scaleMax ?? 7) - (m.scaleMin ?? 1) + 1 }, (_, i) => (m.scaleMin ?? 1) + i).map(
+                (n) => (
+                  <label key={`native-${n}`}>
+                    <input
+                      type="radio"
+                      name={m.id}
+                      value={n}
+                      checked={answers[m.id] === n}
+                      onChange={() => {
+                        setAnswers((a) => ({ ...a, [m.id]: n }));
+                        pushEvents(runtime, [
+                          {
+                            eventType: "response_change",
+                            stepId: step?.id,
+                            objectId: m.id,
+                            payload: { value: n }
+                          }
+                        ]).catch(() => undefined);
+                      }}
+                    />
+                    {n}
+                  </label>
+                )
+              )}
+            </div>
           </div>
         )}
         {m.scaleLabels ? (
