@@ -30,3 +30,23 @@ npm run e2e:smoke
 ## Legacy
 
 `legacy/plotlock/` is the previous unrelated hackathon demo — do not delete unprompted.
+
+## Agent skills
+
+Project skills live in `.cursor/skills/` (committed):
+
+| Source | Prefix / name | Use for |
+|--------|---------------|---------|
+| [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | e.g. `test-driven-development`, `spec-driven-development` | Specs → code → review → test |
+| [obra/superpowers](https://github.com/obra/superpowers) | `superpowers-*` | Brainstorm, plans, TDD, debugging, finish branch |
+| [browser-harness](https://github.com/browser-use/browser-harness) | `browser-harness` | Real Chrome control via CDP |
+
+Routing rule: `.cursor/rules/agent-skills.mdc`
+
+Browser Harness CLI (local/dev machine):
+
+```bash
+uv tool install --python 3.12 --upgrade --force browser-harness
+# then enable Chrome remote debugging (chrome://inspect/#remote-debugging)
+```
+

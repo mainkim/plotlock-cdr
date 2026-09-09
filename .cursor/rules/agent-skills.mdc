@@ -1,0 +1,16 @@
+---
+description: Prefer project agent skills for non-trivial development work
+alwaysApply: true
+---
+
+# Agent skills (project)
+
+Before non-trivial technical work, route through project skills under `.cursor/skills/`:
+
+1. **addyosmani/agent-skills** — specs, implementation, review, tests  
+   Start with `using-agent-skills` when choosing a workflow.
+2. **obra/superpowers** — brainstorm → plan → TDD → review → finish  
+   Prefixed as `superpowers-*` (e.g. `superpowers-brainstorming`, `superpowers-test-driven-development`).
+3. **browser-harness** — drive a real Chrome browser via CDP for manual verification.
+
+Do not paste entire skill bodies into rules. Read the matching `SKILL.md` when the task fits.
