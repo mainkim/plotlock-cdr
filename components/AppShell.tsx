@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   Bot,
+  BookOpen,
   CircleHelp,
   ClipboardCheck,
   FlaskConical,
@@ -51,6 +52,13 @@ function SidebarNav() {
       icon: Bot,
       label: "AI 연구 브리프",
       activeWhen: () => pathname === "/studies/new" || (pathname?.startsWith("/studies/") && tab === "design")
+    },
+    {
+      href: studyBase ? `${studyBase}?tab=sources` : "/studies/new",
+      id: "sources",
+      icon: BookOpen,
+      label: "자료·계보",
+      activeWhen: () => !!pathname?.startsWith("/studies/") && tab === "sources"
     },
     {
       href: studyBase ? `${studyBase}?tab=conditions` : "/studies/new",

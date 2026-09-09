@@ -33,6 +33,63 @@ export type Stimulus = {
   ctaLabel: string;
   criteriaButtonLabel: string;
   criteriaDetail: string;
+  /** RAG / grounded generation provenance */
+  groundedCitations?: GroundedCitation[];
+};
+
+/** Uploaded or pasted research material for grounded (RAG) generation */
+export type SourceDocument = {
+  id: string;
+  title: string;
+  authors?: string;
+  year?: number;
+  kind: "paper" | "plan" | "feedback" | "note" | "other";
+  text: string;
+  addedAt: string;
+  /** Optional ResearchRabbit-style links: this paper cites these source ids */
+  citesSourceIds?: string[];
+};
+
+export type SourceChunk = {
+  id: string;
+  sourceId: string;
+  index: number;
+  text: string;
+};
+
+export type GroundedCitation = {
+  sourceId: string;
+  sourceTitle: string;
+  chunkId: string;
+  excerpt: string;
+};
+
+export type LineageEdge = {
+  id: string;
+  fromSourceId: string;
+  toSourceId: string;
+  relation: "cites" | "cited_by" | "related";
+  note?: string;
+};
+
+export type SourceLibrary = {
+  documents: SourceDocument[];
+  edges: LineageEdge[];
+  lastGroundedAt?: string;
+  groundingMode: "rag_corpus_only";
+};
+
+export type GroundedStimulusSuggestion = {
+  conditionId: string;
+  title: string;
+  body: string;
+  reasonText?: string;
+  reasonShown: boolean;
+  tone: "neutral" | "warm" | "other";
+  ctaLabel: string;
+  criteriaDetail: string;
+  citations: GroundedCitation[];
+  refusalReason?: string;
 };
 
 export type MeasureType = "likert" | "choice" | "text" | "attention_check" | "manipulation_check";
@@ -89,8 +146,10 @@ export type StudyDraftSpec = {
   measures: Measure[];
   behaviorEvents: BehaviorEventDef[];
   reviewRequired: ReviewRequiredItem[];
+  /** Corpus for RAG / notebook-style grounded generation */
+  sourceLibrary?: SourceLibrary;
   aiMeta?: {
-    mode: "template" | "llm";
+    mode: "template" | "llm" | "rag_grounded";
     note: string;
     sourcePrompt: string;
   };

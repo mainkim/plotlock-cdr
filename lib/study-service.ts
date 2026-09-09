@@ -1,5 +1,14 @@
 import { assignCondition } from "./assignment";
 import { generateStudyDraft, DEMO_PROMPT } from "./ai/generator";
+import { addLineageEdge, buildLineageGraph, syncLineageFromDocuments } from "./ai/lineage";
+import {
+  applyGroundedSuggestions,
+  ensureSourceLibrary,
+  getSourceLibrary,
+  makeSourceDocument,
+  recommendGroundedStimuli,
+  seedDemoSourceLibrary
+} from "./ai/rag";
 import { addMissingRecommendationSelect, canTransition, harmonizeCtaLabels, runQa } from "./qa";
 import { newId, nowIso, shortCode, withDb, withDbRead } from "./store";
 import type {
@@ -7,6 +16,7 @@ import type {
   QualityFlag,
   ResearchEvent,
   Session,
+  SourceDocument,
   Study,
   StudyDraftSpec,
   StudyVersion,
@@ -115,6 +125,97 @@ export function applyDemoFixes(studyId: string) {
     let next = addMissingRecommendationSelect(spec);
     next = harmonizeCtaLabels(next);
     return next;
+  });
+}
+
+export function addStudySource(
+  studyId: string,
+  input: {
+    title: string;
+    text: string;
+    authors?: string;
+    year?: number;
+    kind?: SourceDocument["kind"];
+    citesSourceIds?: string[];
+  }
+) {
+  return updateDraftSpec(studyId, (spec) => {
+    const library = ensureSourceLibrary(spec);
+    const doc = makeSourceDocument(input);
+    library.documents.push(doc);
+    syncLineageFromDocuments(library);
+    return spec;
+  });
+}
+
+export function removeStudySource(studyId: string, sourceId: string) {
+  return updateDraftSpec(studyId, (spec) => {
+    const library = ensureSourceLibrary(spec);
+    library.documents = library.documents.filter((d) => d.id !== sourceId);
+    library.edges = library.edges.filter((e) => e.fromSourceId !== sourceId && e.toSourceId !== sourceId);
+    for (const d of library.documents) {
+      d.citesSourceIds = (d.citesSourceIds ?? []).filter((id) => id !== sourceId);
+    }
+    return spec;
+  });
+}
+
+export function linkStudySources(
+  studyId: string,
+  fromSourceId: string,
+  toSourceId: string,
+  note?: string
+) {
+  return updateDraftSpec(studyId, (spec) => {
+    const library = ensureSourceLibrary(spec);
+    addLineageEdge(library, fromSourceId, toSourceId, "cites", note);
+    const from = library.documents.find((d) => d.id === fromSourceId);
+    if (from) {
+      from.citesSourceIds = Array.from(new Set([...(from.citesSourceIds ?? []), toSourceId]));
+    }
+    return spec;
+  });
+}
+
+export function getStudyLineage(studyId: string) {
+  return withDbRead((db) => {
+    const study = db.studies.find((s) => s.id === studyId);
+    if (!study) return null;
+    const version =
+      db.versions.find((v) => v.id === study.latestDraftVersionId) ??
+      db.versions.find((v) => v.id === study.currentVersionId);
+    if (!version) return null;
+    return {
+      studyId,
+      library: getSourceLibrary(version.spec),
+      graph: buildLineageGraph(version.spec)
+    };
+  });
+}
+
+export function previewGroundedStimuli(studyId: string, query?: string) {
+  return withDbRead((db) => {
+    const study = db.studies.find((s) => s.id === studyId);
+    if (!study?.latestDraftVersionId) throw new Error("No draft");
+    const version = db.versions.find((v) => v.id === study.latestDraftVersionId)!;
+    return recommendGroundedStimuli(version.spec, query);
+  });
+}
+
+export function applyGroundedStimuli(studyId: string, query?: string) {
+  return updateDraftSpec(studyId, (spec) => {
+    const preview = recommendGroundedStimuli(spec, query);
+    if (!preview.suggestions.length) {
+      throw new Error(preview.note || "자료 기반 자극을 만들 수 없습니다.");
+    }
+    return applyGroundedSuggestions(spec, preview.suggestions);
+  });
+}
+
+export function seedSourceLibrary(studyId: string) {
+  return updateDraftSpec(studyId, (spec) => {
+    spec.sourceLibrary = seedDemoSourceLibrary();
+    return spec;
   });
 }
 
@@ -571,7 +672,13 @@ export async function seedDemoStudy() {
   });
 
   const { study } = await createStudyFromPrompt(DEMO_PROMPT, { isDemo: true, targetN: 80 });
+  seedSourceLibrary(study.id);
   applyDemoFixes(study.id);
+  try {
+    applyGroundedStimuli(study.id);
+  } catch {
+    /* corpus seed may still leave QA demo quirks; ignore grounding miss */
+  }
   submitForReview(study.id);
   approveStudy(study.id);
   const published = publishStudy(study.id);

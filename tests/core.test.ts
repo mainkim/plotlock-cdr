@@ -1,6 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { generateStudyDraft, DEMO_PROMPT } from "../lib/ai/generator";
+import { buildLineageGraph } from "../lib/ai/lineage";
+import { applyGroundedSuggestions, recommendGroundedStimuli, seedDemoSourceLibrary } from "../lib/ai/rag";
 import { addMissingRecommendationSelect, compareConditions, runQa } from "../lib/qa";
 import { assignCondition } from "../lib/assignment";
 import type { StudyVersion } from "../lib/types";
@@ -57,5 +59,29 @@ describe("assignment", () => {
     for (const a of assignments) counts[a.conditionId] += 1;
     const values = Object.values(counts);
     assert.equal(Math.max(...values) - Math.min(...values) <= 1, true);
+  });
+});
+
+describe("RAG grounded stimuli", () => {
+  it("refuses when corpus is empty", async () => {
+    const draft = await generateStudyDraft(DEMO_PROMPT);
+    const preview = recommendGroundedStimuli(draft, "추천 신뢰");
+    assert.equal(preview.suggestions.length, 0);
+    assert.match(preview.note, /자료실|비어/);
+  });
+
+  it("grounds stimuli only on seeded corpus and builds lineage", async () => {
+    const draft = await generateStudyDraft(DEMO_PROMPT);
+    draft.sourceLibrary = seedDemoSourceLibrary();
+    const preview = recommendGroundedStimuli(draft, "추천 이유 신뢰 설명");
+    assert.ok(preview.suggestions.length >= 4);
+    assert.ok(preview.retrieved.length > 0);
+    assert.ok(preview.suggestions.every((s) => s.citations.length > 0));
+    const applied = applyGroundedSuggestions(draft, preview.suggestions);
+    assert.equal(applied.aiMeta?.mode, "rag_grounded");
+    assert.ok(applied.stimuli.every((s) => (s.groundedCitations?.length ?? 0) > 0));
+    const graph = buildLineageGraph(applied);
+    assert.ok(graph.nodes.length >= 3);
+    assert.ok(graph.edges.length >= 1);
   });
 });

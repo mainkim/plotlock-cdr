@@ -13,6 +13,12 @@
 - 생성형 AI 운동계획 · 개인화 × 어조 실험 런타임
 - 발표에서 “해봄으로 실제로 만든 연구 앱” 예시로 사용
 
+## 자료 기반 생성 (RAG)
+
+- 용어: **RAG / Retrieval-Augmented Generation** = 노트북 LLM처럼 **넣은 자료만** 근거로 생성
+- 연구 탭 `자료·계보 (RAG)`: 논문 붙여넣기 → 검색 → 자극 초안 (코퍼스 외 거절)
+- 계보 그래프: ResearchRabbit 스타일 cites 관계
+
 ## Research
 
 1. `/` 또는 `/studies/new` — 연구 아이디어 자연어 입력

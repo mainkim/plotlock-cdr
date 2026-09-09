@@ -257,6 +257,7 @@ function build2x2Demo(prompt: string): StudyDraftSpec {
     stimuli,
     measures,
     behaviorEvents,
+    sourceLibrary: undefined,
     reviewRequired: [
       {
         field: "targetN",

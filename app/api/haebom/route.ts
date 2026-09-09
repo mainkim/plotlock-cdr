@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   applyDemoFixes,
+  applyGroundedStimuli,
+  addStudySource,
   approveStudy,
   createNewDraftFromPublished,
   createStudyFromPrompt,
@@ -8,12 +10,17 @@ import {
   getDataOverview,
   getParticipantTimeline,
   getStudyBundle,
+  getStudyLineage,
   ingestEvents,
   joinStudy,
+  linkStudySources,
   listStudies,
+  previewGroundedStimuli,
   publishStudy,
   recordConsent,
+  removeStudySource,
   seedDemoStudy,
+  seedSourceLibrary,
   submitForReview,
   submitStep,
   updateDraftSpec,
@@ -146,6 +153,40 @@ export async function POST(req: Request) {
       }
       case "duplicate": {
         return NextResponse.json(duplicateStudy(body.studyId));
+      }
+      case "add_source": {
+        return NextResponse.json(
+          addStudySource(body.studyId, {
+            title: body.title,
+            text: body.text,
+            authors: body.authors,
+            year: body.year,
+            kind: body.kind,
+            citesSourceIds: body.citesSourceIds
+          })
+        );
+      }
+      case "remove_source": {
+        return NextResponse.json(removeStudySource(body.studyId, body.sourceId));
+      }
+      case "link_sources": {
+        return NextResponse.json(
+          linkStudySources(body.studyId, body.fromSourceId, body.toSourceId, body.note)
+        );
+      }
+      case "lineage": {
+        const data = getStudyLineage(body.studyId);
+        if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+        return NextResponse.json(data);
+      }
+      case "preview_grounded_stimuli": {
+        return NextResponse.json(previewGroundedStimuli(body.studyId, body.query));
+      }
+      case "apply_grounded_stimuli": {
+        return NextResponse.json(applyGroundedStimuli(body.studyId, body.query));
+      }
+      case "seed_source_library": {
+        return NextResponse.json(seedSourceLibrary(body.studyId));
       }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });

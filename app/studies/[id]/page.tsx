@@ -14,11 +14,31 @@ import {
   Play,
   QrCode,
   ShieldCheck,
+  Sparkles,
   Users
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { api } from "@/lib/client-api";
 import type { ConditionDiffWarning, QaReport, Study, StudyVersion } from "@/lib/types";
+
+type LineageGraph = {
+  nodes: Array<{
+    id: string;
+    title: string;
+    authors?: string;
+    year?: number;
+    kind: string;
+    x: number;
+    y: number;
+  }>;
+  edges: Array<{
+    id: string;
+    fromSourceId: string;
+    toSourceId: string;
+    relation: string;
+    note?: string;
+  }>;
+};
 
 type Bundle = {
   study: Study;
@@ -31,6 +51,7 @@ type Bundle = {
 
 const TABS = [
   { id: "design", label: "AI 연구 브리프" },
+  { id: "sources", label: "자료·계보 (RAG)" },
   { id: "conditions", label: "조건·자극" },
   { id: "stimuli", label: "자극 편집" },
   { id: "survey", label: "설문" },
@@ -49,10 +70,30 @@ function StudyPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [lineage, setLineage] = useState<LineageGraph | null>(null);
+  const [sourceForm, setSourceForm] = useState({
+    title: "",
+    authors: "",
+    year: "",
+    text: "",
+    citesSourceId: ""
+  });
+  const [groundQuery, setGroundQuery] = useState("");
+  const [groundPreview, setGroundPreview] = useState<{
+    note: string;
+    retrieved: Array<{ sourceTitle: string; excerpt: string }>;
+    suggestions: Array<{ conditionId: string; body: string; citations: Array<{ sourceTitle: string }> }>;
+  } | null>(null);
 
   const load = useCallback(async () => {
     const data = await api<Bundle>("get_bundle", { studyId: params.id });
     setBundle(data);
+    try {
+      const lin = await api<{ graph: LineageGraph }>("lineage", { studyId: params.id });
+      setLineage(lin.graph);
+    } catch {
+      setLineage(null);
+    }
   }, [params.id]);
 
   useEffect(() => {
@@ -189,9 +230,324 @@ function StudyPageInner() {
               </li>
             ))}
           </ul>
-          <button className="primary-btn" type="button" onClick={() => setTab("conditions")}>
-            조건 설계로 이동 →
+          <button className="primary-btn" type="button" onClick={() => setTab("sources")}>
+            자료·계보 (RAG)로 이동 →
           </button>
+        </section>
+      )}
+
+      {tab === "sources" && (
+        <section className="panel">
+          <div className="workspace-head" style={{ padding: 0, marginBottom: 12 }}>
+            <div>
+              <span className="pill blue">RAG · 자료 기반 생성</span>
+              <h2 style={{ margin: "8px 0 4px" }}>노트북 LLM처럼, 넣은 자료만 근거로 씁니다</h2>
+              <p className="muted" style={{ margin: 0 }}>
+                Retrieval-Augmented Generation (그라운디드 생성). 코퍼스 밖 지식으로 자극을 만들지 않습니다.
+                계보는 ResearchRabbit처럼 인용 관계를 보여 줍니다.
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                className="outline-btn"
+                type="button"
+                disabled={busy}
+                onClick={() => run("seed_source_library")}
+              >
+                데모 논문 시드
+              </button>
+              <button className="primary-btn" type="button" onClick={() => setTab("conditions")}>
+                조건·자극으로 →
+              </button>
+            </div>
+          </div>
+
+          <div className="grid-2" style={{ gap: 16 }}>
+            <div className="checklist-card">
+              <h3 style={{ marginTop: 0 }}>자료 추가</h3>
+              <div className="field">
+                <label>
+                  제목
+                  <input
+                    value={sourceForm.title}
+                    onChange={(e) => setSourceForm((s) => ({ ...s, title: e.target.value }))}
+                    placeholder="논문/계획서 제목"
+                  />
+                </label>
+                <label>
+                  저자
+                  <input
+                    value={sourceForm.authors}
+                    onChange={(e) => setSourceForm((s) => ({ ...s, authors: e.target.value }))}
+                    placeholder="예: Kim & Lee"
+                  />
+                </label>
+                <label>
+                  연도
+                  <input
+                    value={sourceForm.year}
+                    onChange={(e) => setSourceForm((s) => ({ ...s, year: e.target.value }))}
+                    placeholder="2024"
+                  />
+                </label>
+                <label>
+                  이 자료가 인용하는 기존 자료
+                  <select
+                    value={sourceForm.citesSourceId}
+                    onChange={(e) => setSourceForm((s) => ({ ...s, citesSourceId: e.target.value }))}
+                  >
+                    <option value="">(선택 안 함)</option>
+                    {(spec.sourceLibrary?.documents ?? []).map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  원문 / 요약 붙여넣기
+                  <textarea
+                    value={sourceForm.text}
+                    onChange={(e) => setSourceForm((s) => ({ ...s, text: e.target.value }))}
+                    placeholder="PDF 텍스트·초록·노트를 붙여넣으세요. 이 내용만 검색 근거가 됩니다."
+                  />
+                </label>
+              </div>
+              <button
+                className="primary-btn"
+                type="button"
+                disabled={busy || !sourceForm.text.trim()}
+                onClick={async () => {
+                  await run("add_source", {
+                    title: sourceForm.title || "붙여넣은 자료",
+                    authors: sourceForm.authors || undefined,
+                    year: sourceForm.year ? Number(sourceForm.year) : undefined,
+                    kind: "paper",
+                    text: sourceForm.text,
+                    citesSourceIds: sourceForm.citesSourceId ? [sourceForm.citesSourceId] : []
+                  });
+                  setSourceForm({ title: "", authors: "", year: "", text: "", citesSourceId: "" });
+                }}
+              >
+                자료실에 추가
+              </button>
+            </div>
+
+            <div className="checklist-card">
+              <h3 style={{ marginTop: 0 }}>
+                자료실 ({spec.sourceLibrary?.documents?.length ?? 0})
+              </h3>
+              {!(spec.sourceLibrary?.documents?.length) ? (
+                <p className="muted">아직 자료가 없습니다. 데모 시드나 붙여넣기로 시작하세요.</p>
+              ) : (
+                <ul className="source-list">
+                  {(spec.sourceLibrary?.documents ?? []).map((d) => (
+                    <li key={d.id}>
+                      <div>
+                        <strong>{d.title}</strong>
+                        <p>
+                          {[d.authors, d.year].filter(Boolean).join(" · ")} · {d.kind}
+                        </p>
+                      </div>
+                      <button
+                        className="outline-btn"
+                        type="button"
+                        style={{ height: 32 }}
+                        disabled={busy}
+                        onClick={() => run("remove_source", { sourceId: d.id })}
+                      >
+                        삭제
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <div className="panel" style={{ marginTop: 16, marginBottom: 0 }}>
+            <h3 style={{ marginTop: 0 }}>논문 계보 (ResearchRabbit 스타일)</h3>
+            <p className="muted">노드 = 자료, 화살표 = cites (인용)</p>
+            {!lineage?.nodes?.length ? (
+              <p className="muted">자료를 추가하면 계보가 그려집니다.</p>
+            ) : (
+              <div className="lineage-wrap">
+                <svg
+                  className="lineage-svg"
+                  viewBox={`0 0 ${Math.max(640, ...lineage.nodes.map((n) => n.x + 160))} ${Math.max(
+                    240,
+                    ...lineage.nodes.map((n) => n.y + 80)
+                  )}`}
+                  role="img"
+                  aria-label="논문 계보 그래프"
+                >
+                  {lineage.edges.map((e) => {
+                    const from = lineage.nodes.find((n) => n.id === e.fromSourceId);
+                    const to = lineage.nodes.find((n) => n.id === e.toSourceId);
+                    if (!from || !to) return null;
+                    return (
+                      <line
+                        key={e.id}
+                        x1={from.x + 60}
+                        y1={from.y + 24}
+                        x2={to.x + 60}
+                        y2={to.y + 24}
+                        stroke="#9bb0c9"
+                        strokeWidth="2"
+                        markerEnd="url(#arrow)"
+                      />
+                    );
+                  })}
+                  <defs>
+                    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                      <path d="M0,0 L6,3 L0,6 Z" fill="#9bb0c9" />
+                    </marker>
+                  </defs>
+                  {lineage.nodes.map((n) => (
+                    <g key={n.id} transform={`translate(${n.x}, ${n.y})`}>
+                      <rect width="120" height="56" rx="12" fill="#fff" stroke="#316bff" strokeWidth="1.5" />
+                      <text x="10" y="22" fontSize="11" fill="#182033">
+                        {(n.title || "").slice(0, 14)}
+                        {(n.title || "").length > 14 ? "…" : ""}
+                      </text>
+                      <text x="10" y="40" fontSize="10" fill="#6b7c90">
+                        {n.year ?? n.kind}
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+              </div>
+            )}
+            {(spec.sourceLibrary?.documents?.length ?? 0) >= 2 ? (
+              <div className="field" style={{ marginTop: 12 }}>
+                <label>
+                  인용 링크 추가 (from → to)
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <select
+                      id="link-from"
+                      defaultValue=""
+                      onChange={() => undefined}
+                    >
+                      <option value="" disabled>
+                        인용하는 쪽
+                      </option>
+                      {(spec.sourceLibrary?.documents ?? []).map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.title.slice(0, 40)}
+                        </option>
+                      ))}
+                    </select>
+                    <select id="link-to" defaultValue="">
+                      <option value="" disabled>
+                        인용되는 쪽
+                      </option>
+                      {(spec.sourceLibrary?.documents ?? []).map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.title.slice(0, 40)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="outline-btn"
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        const from = (document.getElementById("link-from") as HTMLSelectElement)?.value;
+                        const to = (document.getElementById("link-to") as HTMLSelectElement)?.value;
+                        if (from && to) void run("link_sources", { fromSourceId: from, toSourceId: to });
+                      }}
+                    >
+                      계보에 연결
+                    </button>
+                  </div>
+                </label>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="composer-card" style={{ marginTop: 16 }}>
+            <div className="ai-orb">
+              <Sparkles size={21} />
+            </div>
+            <div className="composer-copy">
+              <strong>자료 기반 자극 추천 (Grounded)</strong>
+              <span>검색된 문단만 사용해 조건별 자극 초안을 만듭니다. 코퍼스에 없으면 거절합니다.</span>
+            </div>
+            <textarea
+              aria-label="그라운딩 질의"
+              value={groundQuery}
+              onChange={(e) => setGroundQuery(e.target.value)}
+              placeholder="예: 추천 이유 제시가 신뢰에 미치는 영향"
+              style={{ gridColumn: "1 / -1", minHeight: 72 }}
+            />
+            <div className="upload-row">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  setError(null);
+                  try {
+                    const preview = await api<{
+                      note: string;
+                      retrieved: Array<{ sourceTitle: string; excerpt: string }>;
+                      suggestions: Array<{
+                        conditionId: string;
+                        body: string;
+                        citations: Array<{ sourceTitle: string }>;
+                      }>;
+                    }>("preview_grounded_stimuli", {
+                      studyId: params.id,
+                      query: groundQuery || undefined
+                    });
+                    setGroundPreview(preview);
+                    setNotice(preview.note);
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "실패");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                미리보기
+              </button>
+              <button
+                className="primary"
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  await run("apply_grounded_stimuli", { query: groundQuery || undefined });
+                  setTab("conditions");
+                }}
+              >
+                자극에 적용
+              </button>
+            </div>
+          </div>
+
+          {groundPreview ? (
+            <div className="panel" style={{ marginTop: 16 }}>
+              <h3>검색된 근거</h3>
+              {groundPreview.retrieved.map((r, i) => (
+                <div key={`${r.sourceTitle}-${i}`} className="alert alert-ok">
+                  <strong>{r.sourceTitle}</strong>
+                  <div className="muted" style={{ marginTop: 4 }}>
+                    {r.excerpt}
+                  </div>
+                </div>
+              ))}
+              <h3>조건별 초안</h3>
+              {groundPreview.suggestions.map((s) => (
+                <div key={s.conditionId} className="condition-card" style={{ marginBottom: 8 }}>
+                  <strong>{s.conditionId}</strong>
+                  <p style={{ whiteSpace: "pre-wrap" }}>{s.body}</p>
+                  <p className="muted" style={{ fontSize: 12 }}>
+                    cites: {s.citations.map((c) => c.sourceTitle).join(" · ") || "—"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </section>
       )}
 
