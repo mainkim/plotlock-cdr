@@ -28,7 +28,9 @@ export default function DemoPage() {
     setError(null);
     try {
       const seeded = await api<{ study: { id: string; joinCode: string } }>("seed_demo");
-      setReady({ studyId: seeded.study.id, joinCode: seeded.study.joinCode });
+      const next = { studyId: seeded.study.id, joinCode: seeded.study.joinCode };
+      setReady(next);
+      router.push(`/studies/${next.studyId}?tab=conditions`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "데모 준비 실패");
     } finally {
@@ -61,7 +63,15 @@ export default function DemoPage() {
           <h1>60초 안에 핵심 가치를 보여주세요</h1>
           <p>가설 → 실험 → 행동+설문 연결 → Export. AI는 타당성을 보장하지 않습니다. DEMO/MOCK DATA.</p>
         </div>
-        <button className="primary-btn" type="button" disabled={busy} onClick={prepare}>
+        <button
+          id="demo-seed-btn"
+          className="primary-btn"
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            void prepare();
+          }}
+        >
           <Play size={17} />
           {busy ? "준비 중…" : "데모 연구 Publish 시드"}
         </button>
@@ -108,7 +118,7 @@ export default function DemoPage() {
             <span>AI 초안 생성부터 시작하면 QA warning까지 보여줄 수 있습니다.</span>
           </div>
           <div className="upload-row">
-            <button className="primary" type="button" disabled={busy} onClick={startFreshDraft}>
+            <button className="primary" type="button" disabled={busy} onClick={() => void startFreshDraft()}>
               AI 초안부터 시작
             </button>
           </div>

@@ -42,7 +42,16 @@ function StudyPageInner() {
   }, [params.id]);
 
   useEffect(() => {
-    load().catch((e) => setError(e.message));
+    let cancelled = false;
+    setError(null);
+    setBundle(null);
+    load()
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   const version = bundle?.draft ?? bundle?.current;
@@ -81,7 +90,18 @@ function StudyPageInner() {
   if (!bundle || !spec || !version) {
     return (
       <AppShell studyId={params.id}>
-        <div className="panel">{error ? <div className="alert alert-danger">{error}</div> : "불러오는 중…"}</div>
+        <div className="panel">
+          {error ? (
+            <>
+              <div className="alert alert-danger">{error}</div>
+              <button className="primary-btn" type="button" onClick={() => load().catch((e) => setError(e.message))}>
+                다시 불러오기
+              </button>
+            </>
+          ) : (
+            "불러오는 중…"
+          )}
+        </div>
       </AppShell>
     );
   }
