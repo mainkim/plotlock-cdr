@@ -88,24 +88,31 @@ function StudyPageInner() {
 
   return (
     <AppShell>
-      <section className="panel">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-          <div>
-            <p className="muted" style={{ margin: 0 }}>
-              Study · v{version.versionNumber} · <span className="status-pill" data-status={version.status}>{version.status}</span>
-              {bundle.study.isDemo ? " · DEMO" : ""}
-            </p>
-            <h2 style={{ marginBottom: 0 }}>{bundle.study.title}</h2>
-          </div>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <Link className="btn btn-secondary" href={`/studies/${bundle.study.id}/data`}>
+      <div className="workspace-head">
+        <div>
+          <span className={`pill ${version.status === "published" ? "mint" : version.status === "review" || version.status === "approved" ? "amber" : "blue"}`}>
+            {version.status === "published" ? "실행 중" : version.status === "approved" ? "승인됨" : version.status === "review" ? "검토 중" : "AI 초안"}
+          </span>
+          <h1>{bundle.study.title}</h1>
+          <p>
+            Study · v{version.versionNumber}
+            {bundle.study.isDemo ? " · DEMO" : ""} · 의도한 조작과 측정이 데이터까지 이어졌는지 확인하세요.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <Link className="outline-btn" href={`/studies/${bundle.study.id}/data`}>
               데이터
             </Link>
-            <Link className="btn btn-secondary" href={`/p/${bundle.study.joinCode}`}>
+            <Link className="primary-btn" href={`/p/${bundle.study.joinCode}`}>
               참여 링크
             </Link>
-          </div>
         </div>
+      </div>
+
+      <section className="panel">
+        <p className="muted" style={{ margin: 0 }}>
+          화면 흐름 · 설계 → 조건 → 자극 → 설문 → 행동 → QA → 승인
+        </p>
         <div className="steps">
           {TABS.map((t) => (
             <button

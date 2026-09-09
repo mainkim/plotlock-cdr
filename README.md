@@ -63,6 +63,18 @@ Open `http://localhost:3000`
 
 ---
 
+## Design source
+
+클릭 프로토타입과 화면설계를 반영했습니다.
+
+- `docs/haebom-web-screen-design.md` — 주요 화면 정의
+- `reference/click-prototype/` — 원본 클릭 프로토타입
+- `public/haebom-logo.png`, `public/haebom-symbol.png` — 원페이저 로고 원본 직접 사용
+
+디자인 원칙: 흰 바탕 · 해봄 블루 · 민트(연구 안전) · 한 화면 한 과업 · AI 초안과 연구자 승인 상태 구분
+
+---
+
 ## Legacy
 
 이전 PlotLock CDR 데모는 `legacy/plotlock/`에 보존되어 있습니다.

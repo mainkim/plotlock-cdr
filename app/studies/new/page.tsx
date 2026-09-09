@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Sparkles, WandSparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { api } from "@/lib/client-api";
 
@@ -30,26 +31,38 @@ export default function NewStudyPage() {
 
   return (
     <AppShell>
-      <section className="panel">
-        <h2>AI에게 연구 설명하기</h2>
-        <p className="muted">
-          AI는 구조화된 실험 초안만 생성합니다. 표본수·IRB·척도 출처·통계 검정은 확정하지 않고 reviewRequired로
-          남깁니다.
-        </p>
-        <div className="field" style={{ marginTop: "1rem" }}>
-          <label htmlFor="prompt">연구 아이디어 (자연어)</label>
-          <textarea id="prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+      <div className="workspace-head">
+        <div>
+          <span className="pill blue">AI 초안</span>
+          <h1>AI에게 연구 설명하기</h1>
+          <p>
+            AI는 구조화된 실험 초안만 생성합니다. 표본수·IRB·척도 출처·통계 검정은 확정하지 않고 reviewRequired로
+            남깁니다.
+          </p>
         </div>
-        {error ? <div className="alert alert-danger">{error}</div> : null}
-        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
-          <button className="btn" onClick={generate} disabled={busy || !prompt.trim()}>
-            {busy ? "초안 생성 중…" : "구조화된 실험 초안 생성"}
-          </button>
-          <button className="btn btn-secondary" type="button" onClick={() => setPrompt(DEMO_PROMPT)}>
+      </div>
+
+      <div className="composer-card">
+        <div className="ai-orb">
+          <Sparkles size={21} />
+        </div>
+        <div className="composer-copy">
+          <strong>자연어로 연구 목적을 설명해 주세요.</strong>
+          <span>2×2 between-subject 데모 시나리오가 미리 채워져 있습니다.</span>
+        </div>
+        <textarea aria-label="연구 설명" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+        <div className="upload-row">
+          <button type="button" onClick={() => setPrompt(DEMO_PROMPT)}>
             데모 프롬프트 채우기
           </button>
+          <button className="primary" type="button" onClick={generate} disabled={busy || !prompt.trim()}>
+            <WandSparkles size={17} />
+            {busy ? "초안 생성 중…" : "구조화된 실험 초안 생성"}
+          </button>
         </div>
-      </section>
+      </div>
+      {error ? <div className="alert alert-danger">{error}</div> : null}
+      <div className="notice">연구자가 승인하기 전에는 게시되지 않습니다.</div>
     </AppShell>
   );
 }
