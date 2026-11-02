@@ -1,6 +1,7 @@
 # 해봄 (Haebom) — Grokbot 인수 브리프
 
 다른 에이전트(그록봇)가 이 파일만 읽고 해봄 작업을 이어갈 수 있게 정리한 문서입니다.  
+제품 원칙, 디자인 목업, **라이너 스콜라급 논문→실험 설계 툴**, 라이브 URL을 한곳에 모았습니다.  
 최종 확인: 2026-11-03 (Asia/Seoul).
 
 ---
@@ -242,6 +243,22 @@ CTA: 높이 43–44px, radius 11–13, 파란 버튼 `box-shadow: 0 8px 20px rgb
 
 ---
 
+## 앱인토스 이름 (해인님 지정)
+
+콘솔 워크스페이스는 **이미 있으면 재사용**. 연구자용은 앱인토스에 안 올림.
+
+| 항목 | 값 | 비고 |
+|---|---|---|
+| 제작자 이름 / 한글 앱 이름 | **해봄리서치** | 공백 없이 6자. 10자 제한 안 |
+| 영문 앱 이름 | Haebom Research | 콘솔 영문명 |
+| 기술 `appName` | **`haebomresearch`** | `intoss://haebomresearch`. 한 번 정하면 못 바꿈. `haebom` 쓰지 말 것 |
+| CORS 기본 | `https://haebomresearch.apps.tossmini.com` 등 | `HAEBOM_AIT_APP_NAME=haebomresearch` |
+| 코드 기본값 | `apps/haebom-participant` 설정의 `HAEBOM_AIT_APP_NAME` 폴백 | 콘솔과 반드시 동일 |
+
+`haebomresearch.vercel.app`은 **옛 웹 배포**라 미니앱 주소가 아님. 라이브 연구자 웹은 계속 mauve.
+
+---
+
 ## 그록봇이 이어서 할 때
 
 1. 라이브 링크는 **mauve만** 쓸 것. `haebomresearch.vercel.app` 금지.
@@ -250,6 +267,7 @@ CTA: 높이 43–44px, radius 11–13, 파란 버튼 `box-shadow: 0 8px 20px rgb
 4. 새 기능보다 데모가 깨지지 않게 유지하는 쪽이 우선.
 5. plotlock-cdr에 작업하고, 라이브는 haebom 푸시 없이는 안 바뀜.
 6. 논문 관련 실험 설계는 위 **라이너 스콜라 툴킷**을 기준으로 할 것. 라이너를 해봄이라고 부르지 말 것. OpenAlex/S2/RAG가 실제 백엔드다.
+7. 앱인토스 콘솔·번들의 `appName`은 **`haebomresearch`**, 사용자에게 보이는 이름은 **해봄리서치**.
 
 해인님 Mac에서 요금만 라이브에 올릴 때 (작업 클론이 plotlock-cdr일 것. `실험앱_vercel` 아님):
 
