@@ -114,8 +114,59 @@ npm test
 npm run e2e:smoke
 ```
 
-화면 설계: `docs/haebom-web-screen-design.md`, `reference/click-prototype/`  
 에이전트 규칙: `AGENTS.md`
+
+원본 디자인 파일 (같은 브랜치, 공개 raw):
+
+- 화면 정의: https://raw.githubusercontent.com/mainkim/plotlock-cdr/cursor/haebom-grokbot-brief-9120/docs/haebom-web-screen-design.md
+- 클릭 프로토타입 TSX: https://raw.githubusercontent.com/mainkim/plotlock-cdr/cursor/haebom-grokbot-brief-9120/reference/click-prototype/page.tsx
+- 클릭 프로토타입 CSS: https://raw.githubusercontent.com/mainkim/plotlock-cdr/cursor/haebom-grokbot-brief-9120/reference/click-prototype/globals.css
+- 로고: `public/haebom-logo.png`, `public/haebom-symbol.png` (원페이저 원본 재가공 금지)
+
+---
+
+## 디자인 (목업 기준 — UI를 바꾸면 이걸 따를 것)
+
+클릭 프로토타입 6화면: **홈 → AI 연구 브리프 → 조건·자극 → 측정 설계 → 검토·승인 → 모집·실행**
+
+### 토큰
+
+| 이름 | 값 | 용도 |
+|---|---|---|
+| navy | `#142338` | 사이드 대비, 승인 카드, 아바타 |
+| ink | `#17212b` | 본문 |
+| muted | `#6b7a90` | 보조 문구 |
+| blue | `#316bff` | 해봄 블루. CTA, 활성 내비, 진행 바 |
+| mint | `#2bc7a5` | 연구 안전, 완료 체크, AI 안전 모드 |
+| line | `#e6ebf2` | 보더 |
+| pale / page | `#f4f7fb` / `#f6f8fb` | 배경 |
+| warn amber | `#b87900` / `#fff4da` | 확인 필요 |
+| ok | `#16866f` | 연결됨·완료 |
+
+폰트: `-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif`  
+그림자: `0 14px 40px rgba(24,48,88,.08)`  
+CTA: 높이 43–44px, radius 11–13, 파란 버튼 `box-shadow: 0 8px 20px rgba(49,107,255,.22)`  
+카드 radius 17–20. 필: blue `#eaf1ff/#2257d9`, mint `#e8faf5/#16866f`, gray `#f0f2f5/#667387`, amber `#fff4da/#b87900`
+
+### 원칙
+
+- 흰 바탕 · 해봄 블루 · 민트(안전)
+- 토스처럼 넓은 여백, 짧은 문장, **한 화면 한 과업**
+- 원페이저 로고를 다시 그리지 말고 이미지 자산 그대로
+- **AI 초안**과 **연구자 승인**을 색·문구로 구분. 승인 전 게시 금지
+- 데스크톱 사이드바 236px / 태블릿 78px / 모바일 하단 탭
+- 참가자 화면에 condition/treatment 용어 넣지 말 것
+
+### 화면별
+
+1. **홈** — “어떤 연구를 앱으로 만들까요?” 계획서·선행연구·지도교수 피드백 업로드, 자연어 목적, 최근 연구 카드.
+2. **AI 연구 브리프** — 연구질문·설계·결과변수·분석 후보. 원문/척도 연결. 표본수·IRB는 미확인으로 표시.
+3. **조건·자극 스튜디오** — 4조건 한 화면 비교. 의도한 조작 외 언어·시각 차이 경고.
+4. **측정 연결 지도** — 개념 ↔ 설문 ↔ 클릭 이벤트 ↔ 데이터 필드. 누락은 amber.
+5. **검토·승인** — 출처·척도·혼입·표본수·IRB·개인정보 체크. 네이비 승인 카드. 승인 시 버전 고정.
+6. **모집·실행** — 웹 링크·QR, 토스는 보조 채널. 익명 Participant ID. 균등 배정.
+
+라이브 앱(`app/globals.css`, `components/AppShell.tsx`)은 이 목업 토큰을 이미 따라간다. 새 UI는 목업을 이기고 임의의 팔레트를 쓰지 말 것.
 
 ---
 
