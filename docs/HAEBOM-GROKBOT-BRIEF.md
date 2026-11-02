@@ -243,17 +243,17 @@ CTA: 높이 43–44px, radius 11–13, 파란 버튼 `box-shadow: 0 8px 20px rgb
 
 ---
 
-## 앱인토스 이름 (해인님 지정)
+## 앱인토스 이름
 
-콘솔 워크스페이스는 **이미 있으면 재사용**. 연구자용은 앱인토스에 안 올림.
+콘솔에 **해봄이 이미 있으면 그걸 재사용**. 새 워크스페이스·새 `appName`을 만들지 말 것. 연구자용은 앱인토스에 안 올림.
 
 | 항목 | 값 | 비고 |
 |---|---|---|
-| 제작자 이름 / 한글 앱 이름 | **해봄리서치** | 공백 없이 6자. 10자 제한 안 |
-| 영문 앱 이름 | Haebom Research | 콘솔 영문명 |
-| 기술 `appName` | **`haebomresearch`** | `intoss://haebomresearch`. 한 번 정하면 못 바꿈. `haebom` 쓰지 말 것 |
-| CORS 기본 | `https://haebomresearch.apps.tossmini.com` 등 | `HAEBOM_AIT_APP_NAME=haebomresearch` |
-| 코드 기본값 | `apps/haebom-participant` 설정의 `HAEBOM_AIT_APP_NAME` 폴백 | 콘솔과 반드시 동일 |
+| 기존 앱 | **해봄** | 있으면 재사용 |
+| 기술 `appName` | **`haebom`** | `intoss://haebom`. 이미 등록된 값은 **변경 불가**. `haebomresearch`로 새로 등록하지 말 것 |
+| 한글 표시 이름 | 해봄리서치로 바꿔도 됨 | 앱 이름은 수정 가능. appName과 다름 |
+| CORS 기본 | `https://haebom.apps.tossmini.com` 등 | `HAEBOM_AIT_APP_NAME=haebom` |
+| 코드 기본값 | `haebom` | 콘솔 기존 앱과 맞출 것 |
 
 `haebomresearch.vercel.app`은 **옛 웹 배포**라 미니앱 주소가 아님. 라이브 연구자 웹은 계속 mauve.
 
@@ -267,7 +267,7 @@ CTA: 높이 43–44px, radius 11–13, 파란 버튼 `box-shadow: 0 8px 20px rgb
 4. 새 기능보다 데모가 깨지지 않게 유지하는 쪽이 우선.
 5. plotlock-cdr에 작업하고, 라이브는 haebom 푸시 없이는 안 바뀜.
 6. 논문 관련 실험 설계는 위 **라이너 스콜라 툴킷**을 기준으로 할 것. 라이너를 해봄이라고 부르지 말 것. OpenAlex/S2/RAG가 실제 백엔드다.
-7. 앱인토스 콘솔·번들의 `appName`은 **`haebomresearch`**, 사용자에게 보이는 이름은 **해봄리서치**.
+7. 앱인토스에 해봄이 있으면 재사용. `appName`은 **`haebom`**. `haebomresearch`로 앱을 하나 더 만들지 말 것. 한글 표시만 해봄리서치로 바꿔도 된다.
 
 해인님 Mac에서 요금만 라이브에 올릴 때 (작업 클론이 plotlock-cdr일 것. `실험앱_vercel` 아님):
 
