@@ -6,12 +6,14 @@ import { defineConfig } from "@apps-in-toss/web-framework/config";
  * https://developers-apps-in-toss.toss.im/documentation/api-and-sdk-en/integration/sdk-3.x
  *
  * Console listing:
- * display name 해봄 연구자 / English Haebom Lab / appName haebomlab
+ * display name 해봄 연구자 / English Haebom Lab / appName haebomstudio
  * tagline 대학원생을 위한 실험설문 설계
+ * Hosts: https://haebomstudio.apps.tossmini.com
+ *        https://haebomstudio.private-apps.tossmini.com
  * No ads, no payments, no Toss login.
  */
 export default defineConfig({
-  appName: "haebomlab",
+  appName: "haebomstudio",
   brand: {
     primaryColor: "#2F6BFF"
   },

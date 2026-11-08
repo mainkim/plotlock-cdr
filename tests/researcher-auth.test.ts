@@ -135,8 +135,9 @@ describe("researcher auth", () => {
     assert.equal(participantAction("runtime"), true);
     assert.equal(participantAction("get_bundle"), false);
     assert.equal(participantAction("data_overview"), false);
-    assert.equal(originAllowed("https://haebomlab.apps.tossmini.com", { NODE_ENV: "production" }), true);
-    assert.equal(originAllowed("https://haebomlab.private-apps.tossmini.com", { NODE_ENV: "production" }), true);
+    assert.equal(originAllowed("https://haebomstudio.apps.tossmini.com", { NODE_ENV: "production" }), true);
+    assert.equal(originAllowed("https://haebomstudio.private-apps.tossmini.com", { NODE_ENV: "production" }), true);
+    assert.equal(originAllowed("https://haebomlab.apps.tossmini.com", { NODE_ENV: "production" }), false);
     assert.equal(originAllowed("https://evil.apps.tossmini.com", { NODE_ENV: "production" }), false);
     assert.equal(originAllowed("http://localhost:5174", { NODE_ENV: "production" }), false);
     assert.equal(originAllowed("http://localhost:5174", { NODE_ENV: "development" }), true);

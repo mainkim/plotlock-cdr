@@ -1,11 +1,13 @@
 /**
- * CORS for the researcher mini-app (haebomlab) and the participant mini-app (haebomresearch).
+ * CORS for the researcher mini-app (haebomstudio) and the participant mini-app (haebomresearch).
  * Apps in Toss hosts, SDK 3.1+:
- * https://<appName>.apps.tossmini.com
- * https://<appName>.private-apps.tossmini.com
+ * https://haebomstudio.apps.tossmini.com
+ * https://haebomstudio.private-apps.tossmini.com
+ * https://haebomresearch.apps.tossmini.com
+ * https://haebomresearch.private-apps.tossmini.com
  */
 
-const DEFAULT_APP_NAMES = ["haebomlab", "haebomresearch"];
+const DEFAULT_APP_NAMES = ["haebomstudio", "haebomresearch"];
 
 function appNames(env: NodeJS.ProcessEnv): string[] {
   const raw = env.HAEBOM_AIT_APP_NAMES?.trim() || env.HAEBOM_AIT_APP_NAME?.trim();
