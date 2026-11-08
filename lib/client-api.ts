@@ -2,6 +2,7 @@ export async function api<T = unknown>(action: string, body: Record<string, unkn
   const res = await fetch("/api/haebom", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ action, ...body })
   });
   const data = await res.json();
@@ -12,6 +13,6 @@ export async function api<T = unknown>(action: string, body: Record<string, unkn
 }
 
 export async function listStudiesApi() {
-  const res = await fetch("/api/haebom", { cache: "no-store" });
+  const res = await fetch("/api/haebom", { cache: "no-store", credentials: "include" });
   return res.json();
 }

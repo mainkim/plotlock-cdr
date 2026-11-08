@@ -48,7 +48,10 @@ export function getStudyBundle(studyId: string) {
   });
 }
 
-export async function createStudyFromPrompt(prompt: string, opts?: { title?: string; targetN?: number; isDemo?: boolean }) {
+export async function createStudyFromPrompt(
+  prompt: string,
+  opts?: { title?: string; targetN?: number; isDemo?: boolean; ownerResearcherId?: string }
+) {
   const spec = await generateStudyDraft(prompt);
   if (opts?.title) spec.title = opts.title;
 
@@ -67,7 +70,8 @@ export async function createStudyFromPrompt(prompt: string, opts?: { title?: str
       targetN: opts?.targetN ?? 80,
       currentVersionId: versionId,
       latestDraftVersionId: versionId,
-      isDemo: opts?.isDemo ?? false
+      isDemo: opts?.isDemo ?? false,
+      ownerResearcherId: opts?.ownerResearcherId
     };
     const version: StudyVersion = {
       id: versionId,
@@ -117,6 +121,57 @@ export function submitForReview(studyId: string) {
     study.status = "review";
     study.updatedAt = nowIso();
     return { study, version };
+  });
+}
+
+export function updateDraftMeta(
+  studyId: string,
+  patch: { title?: string; researchQuestion?: string; hypotheses?: string[] }
+) {
+  return updateDraftSpec(studyId, (spec) => {
+    if (typeof patch.title === "string" && patch.title.trim()) spec.title = patch.title.trim().slice(0, 200);
+    if (typeof patch.researchQuestion === "string") spec.researchQuestion = patch.researchQuestion.trim().slice(0, 2000);
+    if (Array.isArray(patch.hypotheses)) {
+      spec.hypotheses = patch.hypotheses
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 12)
+        .map((item) => item.slice(0, 500));
+    }
+    return spec;
+  });
+}
+
+export function updateStudyListing(
+  studyId: string,
+  patch: { listing?: "public" | "private"; publicDescription?: string | null; estimatedMinutes?: number | null }
+) {
+  return withDb((db) => {
+    const study = db.studies.find((item) => item.id === studyId);
+    if (!study) throw new Error("Study not found");
+    if (patch.listing !== undefined) {
+      if (patch.listing !== "public" && patch.listing !== "private") throw new Error("listing must be public or private");
+      study.listing = patch.listing;
+    }
+    if (patch.publicDescription !== undefined) {
+      const text = patch.publicDescription?.trim() ?? "";
+      if (!text) delete study.publicDescription;
+      else study.publicDescription = text.slice(0, 200);
+    }
+    if (patch.estimatedMinutes !== undefined) {
+      if (patch.estimatedMinutes === null) delete study.estimatedMinutes;
+      else if (!Number.isInteger(patch.estimatedMinutes) || patch.estimatedMinutes < 1 || patch.estimatedMinutes > 180) {
+        throw new Error("estimatedMinutes must be an integer from 1 to 180");
+      } else study.estimatedMinutes = patch.estimatedMinutes;
+    }
+    study.updatedAt = nowIso();
+    return {
+      id: study.id,
+      listing: study.listing ?? "public",
+      publicDescription: study.publicDescription,
+      estimatedMinutes: study.estimatedMinutes
+    };
   });
 }
 
@@ -642,10 +697,14 @@ export function getParticipantTimeline(participantId: string) {
   });
 }
 
-export async function seedDemoStudy() {
-  // Reset demo studies then create fresh published demo
+export async function seedDemoStudy(opts?: { ownerResearcherId?: string }) {
+  // Reset demo studies then create fresh published demo. With an owner, only that owner's demos are replaced.
   withDb((db) => {
-    const demoIds = new Set(db.studies.filter((s) => s.isDemo).map((s) => s.id));
+    const demoIds = new Set(
+      db.studies
+        .filter((s) => s.isDemo && (!opts?.ownerResearcherId || s.ownerResearcherId === opts.ownerResearcherId))
+        .map((s) => s.id)
+    );
     db.studies = db.studies.filter((s) => !s.isDemo);
     db.versions = db.versions.filter((v) => !demoIds.has(v.studyId));
     db.participants = db.participants.filter((p) => !demoIds.has(p.studyId));
@@ -671,7 +730,11 @@ export async function seedDemoStudy() {
     db.meta.demoMode = true;
   });
 
-  const { study } = await createStudyFromPrompt(DEMO_PROMPT, { isDemo: true, targetN: 80 });
+  const { study } = await createStudyFromPrompt(DEMO_PROMPT, {
+    isDemo: true,
+    targetN: 80,
+    ownerResearcherId: opts?.ownerResearcherId
+  });
   seedSourceLibrary(study.id);
   applyDemoFixes(study.id);
   try {
@@ -682,6 +745,11 @@ export async function seedDemoStudy() {
   submitForReview(study.id);
   approveStudy(study.id);
   const published = publishStudy(study.id);
+  updateStudyListing(published.study.id, {
+    listing: "public",
+    publicDescription: "추천 문구를 읽고 짧게 답하는 연구입니다.",
+    estimatedMinutes: 5
+  });
   return published;
 }
 
@@ -712,7 +780,8 @@ export function duplicateStudy(studyId: string) {
       targetN: source.targetN,
       currentVersionId: newVersionId,
       latestDraftVersionId: newVersionId,
-      isDemo: false
+      isDemo: false,
+      ownerResearcherId: source.ownerResearcherId
     };
     const version: StudyVersion = {
       id: newVersionId,

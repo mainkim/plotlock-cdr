@@ -47,8 +47,30 @@ export function emptyDb(): DbShape {
     events: [],
     stimulusExposures: [],
     qualityFlags: [],
-    eventIdIndex: {}
+    eventIdIndex: {},
+    researchers: [],
+    researcherCodes: [],
+    researcherSessions: []
   };
+}
+
+/** Older haebom.json files predate researcher accounts. Fill missing arrays in place. */
+export function normalizeDb(db: DbShape): DbShape {
+  db.studies ??= [];
+  db.versions ??= [];
+  db.participants ??= [];
+  db.sessions ??= [];
+  db.assignments ??= [];
+  db.consents ??= [];
+  db.surveyResponses ??= [];
+  db.events ??= [];
+  db.stimulusExposures ??= [];
+  db.qualityFlags ??= [];
+  db.eventIdIndex ??= {};
+  db.researchers ??= [];
+  db.researcherCodes ??= [];
+  db.researcherSessions ??= [];
+  return db;
 }
 
 function ensureDir() {
@@ -124,7 +146,7 @@ function loadDbFromDisk(): DbShape {
     return db;
   }
   const raw = readFileSync(DB_PATH, "utf8");
-  return JSON.parse(raw) as DbShape;
+  return normalizeDb(JSON.parse(raw) as DbShape);
 }
 
 function persistDb(db: DbShape) {

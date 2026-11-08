@@ -1342,3 +1342,41 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+.login-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: var(--paper, #fff);
+}
+
+.login-card {
+  width: min(420px, 100%);
+}
+
+.brand-lockup {
+  margin: 0 0 8px;
+  color: var(--blue, #316bff);
+  font-weight: 800;
+}
+
+.researcher-session-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #f7f8fa;
+  color: #4e5968;
+  font-size: 14px;
+}
+
+.researcher-session-bar button {
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: #316bff;
+  font-weight: 700;
+  cursor: pointer;
+}

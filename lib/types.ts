@@ -1,6 +1,7 @@
 /** Haebom core domain types — identity spine: study / version / participant / session / condition */
 
 export type StudyStatus = "draft" | "review" | "approved" | "published" | "closed";
+export type StudyListing = "public" | "private";
 export type VersionStatus = "draft" | "review" | "approved" | "published";
 export type DesignType = "between_subject" | "within_subject" | "mixed";
 
@@ -169,6 +170,38 @@ export type Study = {
   latestDraftVersionId: string | null;
   founderNote?: string;
   isDemo?: boolean;
+  /** Researcher account that may read and edit this study. Absent on legacy rows. */
+  ownerResearcherId?: string;
+  /** Participant home visibility. Missing means public once the study is published. */
+  listing?: StudyListing;
+  /** Participant-facing blurb. Not the research question or hypotheses. */
+  publicDescription?: string;
+  estimatedMinutes?: number;
+};
+
+/** Researcher login identity. Email stays here and is never copied onto participants. */
+export type ResearcherAccount = {
+  id: string;
+  email: string;
+  createdAt: string;
+};
+
+export type ResearcherLoginCode = {
+  id: string;
+  email: string;
+  codeHash: string;
+  expiresAt: string;
+  attempts: number;
+  sentAt: string;
+  consumed?: boolean;
+};
+
+export type ResearcherSessionRecord = {
+  id: string;
+  researcherId: string;
+  tokenHash: string;
+  createdAt: string;
+  expiresAt: string;
 };
 
 export type StudyVersion = {
@@ -346,7 +379,12 @@ export type DbShape = {
     schemaVersion: 1;
     demoMode: boolean;
     updatedAt: string;
+    /** HMAC pepper for login codes. Created on first auth write. */
+    authPepper?: string;
   };
+  researchers: ResearcherAccount[];
+  researcherCodes: ResearcherLoginCode[];
+  researcherSessions: ResearcherSessionRecord[];
   studies: Study[];
   versions: StudyVersion[];
   participants: Participant[];
