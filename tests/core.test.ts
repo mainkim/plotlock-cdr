@@ -2,7 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { generateStudyDraft, DEMO_PROMPT } from "../lib/ai/generator";
 import { buildLineageGraph } from "../lib/ai/lineage";
-import { applyGroundedSuggestions, recommendGroundedStimuli, seedDemoSourceLibrary } from "../lib/ai/rag";
+import { applyGroundedSuggestions, recommendGroundedStimuli } from "../lib/ai/rag";
+import { seedDemoSourceLibrary } from "../lib/ai/demo-lineage";
 import { addMissingRecommendationSelect, compareConditions, runQa } from "../lib/qa";
 import { assignCondition } from "../lib/assignment";
 import type { StudyVersion } from "../lib/types";
@@ -83,5 +84,7 @@ describe("RAG grounded stimuli", () => {
     const graph = buildLineageGraph(applied);
     assert.ok(graph.nodes.length >= 3);
     assert.ok(graph.edges.length >= 1);
+    assert.ok(graph.nodes.some((n) => n.isFocus));
+    assert.ok(graph.nodes.some((n) => n.shortLabel.includes("Jang")));
   });
 });

@@ -256,7 +256,9 @@ export function applyGroundedSuggestions(
   next.aiMeta = {
     mode: "rag_grounded",
     note: "자극은 업로드 코퍼스 기반 RAG로 갱신되었습니다. 외부 지식/환각 문장은 넣지 않도록 설계되었습니다.",
-    sourcePrompt: next.aiMeta?.sourcePrompt ?? next.researchQuestion
+    sourcePrompt: next.aiMeta?.sourcePrompt ?? next.researchQuestion,
+    literatureQuery: next.aiMeta?.literatureQuery,
+    toolCalls: next.aiMeta?.toolCalls
   };
   return next;
 }
@@ -268,6 +270,12 @@ export function makeSourceDocument(input: {
   year?: number;
   kind?: SourceDocument["kind"];
   citesSourceIds?: string[];
+  doi?: string;
+  collectionId?: string;
+  venue?: string;
+  keywords?: string[];
+  literatureType?: SourceDocument["literatureType"];
+  citedByCount?: number;
 }): SourceDocument {
   return {
     id: newId("src"),
@@ -277,64 +285,13 @@ export function makeSourceDocument(input: {
     kind: input.kind ?? "paper",
     text: input.text.trim(),
     addedAt: nowIso(),
-    citesSourceIds: input.citesSourceIds ?? []
-  };
-}
-
-/** Demo corpus for recommendation-trust scenario */
-export function seedDemoSourceLibrary(): SourceLibrary {
-  const a = makeSourceDocument({
-    title: "추천 설명 가능성과 신뢰 (Yeomans et al., 예시 요약)",
-    authors: "Yeomans, Mullainathan, et al.",
-    year: 2019,
-    kind: "paper",
-    text: `추천 시스템에서 이유를 제시하면 사용자는 추천을 더 공정하고 유용하다고 평가하는 경향이 있다.
-설명 가능성은 신뢰 형성의 핵심 단서가 될 수 있으나, 설명이 장황하거나 부정확하면 오히려 신뢰를 해칠 수 있다.
-본 요약은 데모용 코퍼스이며 원문 대체가 아니다.`
-  });
-  const b = makeSourceDocument({
-    title: "커뮤니케이션 온화성과 수용 의도 (데모 노트)",
-    authors: "Haebom Demo Notes",
-    year: 2024,
-    kind: "note",
-    text: `온화한 어조는 수용 의과 관계 만족을 높일 수 있다.
-중립적 어조는 전문성 지각과 연결되기도 한다.
-어조 조작은 메시지 내용과 분리되어야 하며, 의도하지 않은 감정 표현이 섞이면 교란이 된다.`,
-    citesSourceIds: [a.id]
-  });
-  const c = makeSourceDocument({
-    title: "인간-AI 추천 신뢰 메타 메모",
-    authors: "Haebom Seed",
-    year: 2025,
-    kind: "paper",
-    text: `행동 지표(클릭, 더 보기)와 설문 신뢰 문항을 동일 참가자 ID로 연결하면 조작 점검을 강화할 수 있다.
-추천 이유 제시 여부는 조작 확인 문항으로 검증해야 한다.`,
-    citesSourceIds: [a.id, b.id]
-  });
-  return {
-    documents: [a, b, c],
-    edges: [
-      {
-        id: newId("edge"),
-        fromSourceId: b.id,
-        toSourceId: a.id,
-        relation: "cites",
-        note: "온화성 노트가 설명가능성 문헌을 참조"
-      },
-      {
-        id: newId("edge"),
-        fromSourceId: c.id,
-        toSourceId: a.id,
-        relation: "cites"
-      },
-      {
-        id: newId("edge"),
-        fromSourceId: c.id,
-        toSourceId: b.id,
-        relation: "cites"
-      }
-    ],
-    groundingMode: "rag_corpus_only"
+    citesSourceIds: input.citesSourceIds ?? [],
+    doi: input.doi,
+    collectionId: input.collectionId,
+    venue: input.venue,
+    keywords: input.keywords,
+    literatureType: input.literatureType,
+    citedByCount: input.citedByCount
   };
 }
 

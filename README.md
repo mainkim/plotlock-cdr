@@ -28,6 +28,10 @@ npm run dev
 
 Open `http://localhost:3000`
 
+연구자 화면과 `POST /api/haebom`은 `HAEBOM_ADMIN_KEY`가 있어야 열립니다. 키가 없거나 16자보다 짧으면 요청은 503으로 거절됩니다. 웹에서는 입장 화면에 키를 입력하고, 서버는 그 값 대신 httpOnly 쿠키를 남깁니다. 스크립트는 `Authorization: Bearer <key>`를 쓸 수 있습니다. 로컬에서는 `.env.local`에 넣고, Vercel에는 같은 이름의 환경 변수로 넣습니다. 예시 값은 `.env.example`만 보고, 실제 키는 커밋하지 않습니다.
+
+참가자 미니앱은 `GET /api/haebom/open`으로 공개된 연구의 제목·짧은 설명·예상 시간·참여 코드만 읽고, 참여는 `POST /api/participant`로 합니다. 두 경로 모두 키 없이 동작하고, 조건 배정·다른 참가자의 응답·연구자용 목록·토스 사용자 식별자는 내려주지 않습니다. `listing: "private"`인 연구는 목록에서 빠지고 참여 코드로만 들어옵니다.
+
 ---
 
 ## 핵심 원칙
@@ -57,8 +61,9 @@ Open `http://localhost:3000`
 
 ## Stack
 
-- Next.js App Router + TypeScript
-- File-backed JSON store with lock (`data/haebom.json`) for hackathon reliability
+- Next.js App Router + TypeScript (연구자용 웹)
+- 저장: `DATABASE_URL`이 있으면 Neon Postgres 문서 한 행, 없으면 `data/haebom.json` (로컬·테스트·e2e)
+- 참가자 미니앱: `apps/haebom-participant` (Vite 정적 번들, `POST /api/participant`)
 - Deterministic AI study generator (structured JSON; optional `OPENAI_API_KEY` noted but not required)
 
 ---
@@ -81,6 +86,6 @@ Open `http://localhost:3000`
 
 ---
 
-## 수익모델 가설
+## 수익모델
 
-무료 Preview → 연구 프로젝트 단위 유료 → 연구실 구독. 참가자 보상비는 SaaS 매출과 분리. **현재 매출을 주장하지 않습니다.**
+유료 구독 (개인 구독 / 연구실 구독). 14일 체험은 구독 전환용입니다. 참가자 보상비는 구독 요금과 별도. 현재 매출을 주장하지 않습니다.

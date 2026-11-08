@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Check, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 
-type PlanId = "trial" | "per_study" | "lab";
+type PlanId = "trial" | "solo" | "lab";
 
 type PlanState = {
   planId: PlanId;
@@ -29,51 +29,51 @@ const PLANS: Array<{
 }> = [
   {
     id: "trial",
-    name: "체험판",
-    badge: "14일",
+    name: "14일 체험",
+    badge: "체험",
     priceMonthly: "₩0",
     priceYearly: "₩0",
-    priceNote: "카드 없이 Preview · demo participants",
-    cta: "체험판 시작",
+    priceNote: "유료 구독 전 체험 · 카드 없이 시작",
+    cta: "체험 시작",
     features: [
       "연구 설계 · AI 초안",
-      "Preview / 참가자 데모",
+      "참가자 데모 런타임",
       "제한된 event logging",
       "CSV export (제한)",
       "Publish는 watermark DEMO"
     ]
   },
   {
-    id: "per_study",
-    name: "연구 프로젝트",
-    badge: "Per Study",
-    priceMonthly: "₩89,000",
-    priceYearly: "₩89,000",
-    priceNote: "연구 1건 publish 기준 · 가설 가격",
-    cta: "이 플랜으로 시작",
+    id: "solo",
+    name: "개인 구독",
+    badge: "월간/연간",
+    priceMonthly: "₩49,000",
+    priceYearly: "₩490,000",
+    priceNote: "연구자 1인 구독 · 표시 가격은 예시입니다",
+    cta: "구독하기",
     features: [
       "실제 연구 Publish",
-      "participant sessions",
-      "행동 이벤트 로깅",
+      "참가자 세션 · 행동 로그",
       "CSV / Codebook / XLSX",
-      "Study versioning"
+      "Study versioning",
+      "OpenAlex 문헌 · 계보"
     ],
     highlight: true
   },
   {
     id: "lab",
     name: "연구실 구독",
-    badge: "Lab",
+    badge: "팀",
     priceMonthly: "₩290,000",
     priceYearly: "₩2,900,000",
-    priceNote: "월간 / 연간 구독 · 가설 가격",
-    cta: "구독 시작",
+    priceNote: "연구실 단위 구독 · 표시 가격은 예시입니다",
+    cta: "연구실 구독",
     features: [
+      "개인 구독 기능 전부",
       "연구실 공동작업",
-      "template 재사용",
-      "PI review / access control",
-      "복수 연구 동시 운영",
-      "우선 지원 (가설)"
+      "템플릿 재사용",
+      "PI review / 권한",
+      "복수 연구 동시 운영"
     ]
   }
 ];
@@ -82,7 +82,16 @@ function loadPlan(): PlanState | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as PlanState) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      planId: string;
+      billing: PlanState["billing"];
+      startedAt: string;
+      trialEndsAt?: string;
+    };
+    if (parsed.planId === "per_study") parsed.planId = "solo";
+    if (parsed.planId !== "trial" && parsed.planId !== "solo" && parsed.planId !== "lab") return null;
+    return parsed as PlanState;
   } catch {
     return null;
   }
@@ -113,8 +122,8 @@ export default function PricingPage() {
     const label = PLANS.find((p) => p.id === planId)?.name ?? planId;
     setNotice(
       planId === "trial"
-        ? `체험판이 시작되었습니다. (목업 · ${label}) 홈에서 연구를 만들어 보세요.`
-        : `${label}이 선택되었습니다. (목업 · 실제 결제는 없습니다)`
+        ? `14일 체험이 시작되었습니다. (목업 · 결제 없음) 홈에서 연구를 만들어 보세요.`
+        : `${label}이 선택되었습니다. (목업 · 실제 결제는 아직 연결되지 않았습니다)`
     );
   }
 
@@ -128,10 +137,10 @@ export default function PricingPage() {
     <AppShell>
       <div className="workspace-head">
         <div>
-          <span className="pill amber">수익모델 가설</span>
-          <h1>체험판과 구독으로 시작해 보세요</h1>
+          <span className="pill mint">수익모델</span>
+          <h1>해봄은 유료 구독으로 운영합니다</h1>
           <p>
-            확정된 가격이 아닙니다. 현재 매출이 있는 것처럼 표시하지 않습니다. 참가자 보상비는 SaaS 매출과 분리합니다.
+            개인 구독과 연구실 구독. 표시 금액은 예시이며, 현재 매출이 발생한 것처럼 말하지 않습니다.
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -164,8 +173,8 @@ export default function PricingPage() {
         </div>
       </div>
 
-      <div className="alert alert-warn">
-        가설: 무료 Preview(체험판) → 연구 프로젝트 단위 유료 → 반복 사용 연구실 구독
+      <div className="alert alert-ok">
+        수익모델: 유료 구독 (개인 / 연구실). 14일 체험은 구독 전환용이며, 연구 건당 과금이 아닙니다.
       </div>
 
       {current ? (
@@ -175,7 +184,9 @@ export default function PricingPage() {
             {current.planId === "trial" && current.trialEndsAt
               ? ` · 체험 종료 예정 ${new Date(current.trialEndsAt).toLocaleDateString("ko-KR")}`
               : ""}
-            {current.planId === "lab" ? ` · ${current.billing === "yearly" ? "연간" : "월간"} 구독` : ""}
+            {current.planId === "lab" || current.planId === "solo"
+              ? ` · ${current.billing === "yearly" ? "연간" : "월간"} 구독`
+              : ""}
             {" · "}
             <span className="demo-badge">MOCK</span>
           </span>
@@ -190,15 +201,16 @@ export default function PricingPage() {
       <div className="pricing-grid">
         {PLANS.map((plan) => {
           const active = current?.planId === plan.id;
-          const price = billing === "yearly" && plan.id === "lab" ? plan.priceYearly : plan.priceMonthly;
+          const price =
+            billing === "yearly" && (plan.id === "lab" || plan.id === "solo")
+              ? plan.priceYearly
+              : plan.priceMonthly;
           const period =
             plan.id === "trial"
               ? "/ 14일"
-              : plan.id === "per_study"
-                ? "/ 연구"
-                : billing === "yearly"
-                  ? "/ 년"
-                  : "/ 월";
+              : billing === "yearly"
+                ? "/ 년"
+                : "/ 월";
           return (
             <div
               key={plan.id}
@@ -250,12 +262,12 @@ export default function PricingPage() {
           <Sparkles size={21} />
         </div>
         <div className="composer-copy">
-          <strong>체험판으로 들어가 바로 연구 초안을 만들어 보세요</strong>
-          <span>목업이므로 결제는 발생하지 않습니다. 플랜 선택은 이 브라우저에만 저장됩니다.</span>
+          <strong>구독하고 연구 초안을 바로 만들어 보세요</strong>
+          <span>이 화면의 결제는 목업입니다. 플랜 선택은 이 브라우저에만 저장됩니다.</span>
         </div>
         <div className="upload-row">
-          <button type="button" className="primary" onClick={() => selectPlan("trial")}>
-            체험판 시작
+          <button type="button" className="primary" onClick={() => selectPlan("solo")}>
+            개인 구독 선택
           </button>
           <Link className="outline-btn" href="/studies/new" style={{ height: 38 }}>
             AI 연구 만들기
@@ -270,15 +282,15 @@ export default function PricingPage() {
         <h3>포함 / 분리 항목</h3>
         <div className="grid-2">
           <div>
-            <h4 style={{ marginTop: 0 }}>SaaS에 포함</h4>
+            <h4 style={{ marginTop: 0 }}>구독에 포함</h4>
             <ul>
               <li>연구 설계 · QA · versioning</li>
               <li>참가자 런타임 · event logging</li>
-              <li>dashboard · export</li>
+              <li>dashboard · export · 문헌 계보</li>
             </ul>
           </div>
           <div>
-            <h4 style={{ marginTop: 0 }}>SaaS와 분리</h4>
+            <h4 style={{ marginTop: 0 }}>구독과 별도</h4>
             <ul>
               <li>참가자 보상비 / 리워드</li>
               <li>외부 모집 채널 비용 (Prolific 등)</li>

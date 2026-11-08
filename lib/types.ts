@@ -1,6 +1,8 @@
 /** Haebom core domain types — identity spine: study / version / participant / session / condition */
 
 export type StudyStatus = "draft" | "review" | "approved" | "published" | "closed";
+/** public: shown on the participant home. private: join code only. Omitted published studies stay public. */
+export type StudyListing = "public" | "private";
 export type VersionStatus = "draft" | "review" | "approved" | "published";
 export type DesignType = "between_subject" | "within_subject" | "mixed";
 
@@ -48,6 +50,20 @@ export type SourceDocument = {
   addedAt: string;
   /** Optional ResearchRabbit-style links: this paper cites these source ids */
   citesSourceIds?: string[];
+  doi?: string;
+  openAlexId?: string;
+  semanticScholarId?: string;
+  citedByCount?: number;
+  collectionId?: string;
+  venue?: string;
+  keywords?: string[];
+  literatureType?: "journal" | "thesis" | "conference" | "review";
+};
+
+export type SourceCollection = {
+  id: string;
+  name: string;
+  color: string;
 };
 
 export type SourceChunk = {
@@ -75,6 +91,7 @@ export type LineageEdge = {
 export type SourceLibrary = {
   documents: SourceDocument[];
   edges: LineageEdge[];
+  collections?: SourceCollection[];
   lastGroundedAt?: string;
   groundingMode: "rag_corpus_only";
 };
@@ -132,6 +149,15 @@ export type ReviewRequiredItem = {
   suggestedAction: string;
 };
 
+/** Trace of external/local AI tools used while drafting a study */
+export type AiToolCall = {
+  tool: "openalex_search" | "openalex_expand" | "semantic_scholar" | "rag_retrieve" | "rag_ground_stimuli";
+  status: "ok" | "skipped" | "error";
+  input: string;
+  outputSummary: string;
+  count?: number;
+};
+
 export type StudyDraftSpec = {
   title: string;
   researchQuestion: string;
@@ -149,9 +175,11 @@ export type StudyDraftSpec = {
   /** Corpus for RAG / notebook-style grounded generation */
   sourceLibrary?: SourceLibrary;
   aiMeta?: {
-    mode: "template" | "llm" | "rag_grounded";
+    mode: "template" | "llm" | "rag_grounded" | "tools";
     note: string;
     sourcePrompt: string;
+    literatureQuery?: string;
+    toolCalls?: AiToolCall[];
   };
 };
 
@@ -169,6 +197,11 @@ export type Study = {
   latestDraftVersionId: string | null;
   founderNote?: string;
   isDemo?: boolean;
+  /** Participant home visibility. Missing means public once the study is published. */
+  listing?: StudyListing;
+  /** Participant-facing blurb. Not the research question or hypotheses. */
+  publicDescription?: string;
+  estimatedMinutes?: number;
 };
 
 export type StudyVersion = {
