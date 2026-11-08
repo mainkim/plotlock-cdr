@@ -6,8 +6,8 @@
   "description": "해봄 일반용 참가자 미니앱. 앱인토스 정적 번들.",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
-    "build": "vite build && ait build",
-    "typecheck": "tsc --noEmit"
+    "build": "tsc -b && vite build && ait build",
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "react": "^19.0.0",

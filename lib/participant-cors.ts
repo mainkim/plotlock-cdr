@@ -82,7 +82,11 @@ export function originAllowed(
   return false;
 }
 
-export function participantCorsHeaders(origin: string | null, env?: ParticipantCorsEnv): Headers {
+export function participantCorsHeaders(
+  origin: string | null,
+  env?: ParticipantCorsEnv,
+  methods = "POST, OPTIONS"
+): Headers {
   const headers = new Headers();
   headers.set("Vary", "Origin");
   headers.set("Cache-Control", "no-store");
@@ -90,7 +94,7 @@ export function participantCorsHeaders(origin: string | null, env?: ParticipantC
   const allowed = originAllowed(origin, participantCorsPatterns(env), participantAppName(env));
   if (!allowed) return headers;
   headers.set("Access-Control-Allow-Origin", origin);
-  headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  headers.set("Access-Control-Allow-Methods", methods);
   headers.set("Access-Control-Allow-Headers", "Content-Type");
   headers.set("Access-Control-Max-Age", "600");
   return headers;

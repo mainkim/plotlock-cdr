@@ -1172,6 +1172,47 @@ function StudyPageInner() {
               </Link>
             </div>
           )}
+          {(bundle.study.status === "published" || version.status === "published") && (
+            <form
+              key={bundle.study.updatedAt}
+              className="field"
+              style={{ marginTop: 16, maxWidth: 480 }}
+              onSubmit={(event) => {
+                event.preventDefault();
+                const data = new FormData(event.currentTarget);
+                const minutesRaw = String(data.get("estimatedMinutes") ?? "").trim();
+                void run("update_listing", {
+                  listing: data.get("listing"),
+                  publicDescription: String(data.get("publicDescription") ?? ""),
+                  estimatedMinutes: minutesRaw === "" ? null : Number(minutesRaw)
+                });
+              }}
+            >
+              <label htmlFor="study-listing">토스 홈 공개</label>
+              <select id="study-listing" name="listing" defaultValue={bundle.study.listing === "private" ? "private" : "public"}>
+                <option value="public">공개 목록에 표시</option>
+                <option value="private">참여 코드로만</option>
+              </select>
+              <label htmlFor="study-public-description">참가자에게 보이는 짧은 설명</label>
+              <input
+                id="study-public-description"
+                name="publicDescription"
+                maxLength={200}
+                defaultValue={bundle.study.publicDescription ?? ""}
+                placeholder="연구 질문이나 조건은 적지 않습니다."
+              />
+              <label htmlFor="study-minutes">예상 시간(분)</label>
+              <input
+                id="study-minutes"
+                name="estimatedMinutes"
+                inputMode="numeric"
+                defaultValue={bundle.study.estimatedMinutes ?? ""}
+              />
+              <button className="outline-btn" type="submit" disabled={busy}>
+                목록 정보 저장
+              </button>
+            </form>
+          )}
         </section>
       )}
     </AppShell>

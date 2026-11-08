@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { loadParticipantView, participantApi } from "./api";
+import { loadOpenStudies, loadParticipantView, participantApi, type OpenStudyCard } from "./api";
+import { HomeScreen } from "./HomeScreen";
 import { joinCodeFromLocation, normalizeJoinCode } from "./join-code";
 import { anonymousSessionAdapter } from "./session/adapter";
 import { saveAnonymousKey, withDeadline } from "./session/anonymous-key";
@@ -31,6 +32,9 @@ export function App() {
   const [ready, setReady] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [openStudies, setOpenStudies] = useState<OpenStudyCard[] | null>(null);
+  const [openStudiesError, setOpenStudiesError] = useState(false);
+  const joiningRef = useRef(false);
   const storeRef = useRef<ProgressStore | null>(null);
   const progressRef = useRef<ParticipantProgress>(emptyProgress());
   const [joinAttempt, setJoinAttempt] = useState(0);
@@ -101,6 +105,24 @@ export function App() {
   }, [locationCode]);
 
   useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    loadOpenStudies()
+      .then((studies) => {
+        if (!cancelled) setOpenStudies(studies);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setOpenStudies([]);
+          setOpenStudiesError(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready]);
+
+  useEffect(() => {
     if (!ready || !code) return;
     let cancelled = false;
     const store = storeRef.current;
@@ -133,6 +155,8 @@ export function App() {
         await track(next, [{ eventType: "screen_view", screenId: "join", stepId: next.currentStepId }]);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "참여를 시작하지 못했습니다.");
+      } finally {
+        if (!cancelled) joiningRef.current = false;
       }
     })();
     return () => {
@@ -140,18 +164,24 @@ export function App() {
     };
   }, [code, joinAttempt, ready]);
 
-  function onJoinSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const next = normalizeJoinCode(draft);
+  function startJoin(raw: string) {
+    if (joiningRef.current) return;
+    const next = normalizeJoinCode(raw);
     if (!next) {
       setError("참여 코드는 영문과 숫자 4~16자입니다.");
       return;
     }
+    joiningRef.current = true;
     setDraft(next);
     setError(null);
     setView(null);
     setCode(next);
     setJoinAttempt((attempt) => attempt + 1);
+  }
+
+  function onJoinSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    startJoin(draft);
   }
 
   const step = view?.flow.find((item) => item.id === view.currentStepId) ?? null;
@@ -348,41 +378,16 @@ export function App() {
       );
     }
     return (
-      <main className="app">
-        <p className="brand">해봄리서치</p>
-        <h1>
-          <label htmlFor="join-code">참여 코드</label>
-        </h1>
-        <p id="join-code-hint" className="hint">
-          연구자에게 받은 참여 코드를 입력해 주세요.
-        </p>
-        <form className="join-form" onSubmit={onJoinSubmit} noValidate>
-          <input
-            id="join-code"
-            name="joinCode"
-            value={draft}
-            autoFocus
-            onChange={(event) => setDraft(event.target.value)}
-            aria-describedby={error ? "join-code-hint join-code-error" : "join-code-hint"}
-            aria-invalid={error ? true : undefined}
-            autoCapitalize="characters"
-            autoCorrect="off"
-            autoComplete="off"
-            spellCheck={false}
-            enterKeyHint="go"
-            inputMode="text"
-            maxLength={24}
-          />
-          {error ? (
-            <p id="join-code-error" className="error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <button className="primary" type="submit">
-            참여 시작
-          </button>
-        </form>
-      </main>
+      <HomeScreen
+        draft={draft}
+        error={error}
+        studies={openStudies}
+        studiesError={openStudiesError}
+        joining={joiningRef.current}
+        onDraft={setDraft}
+        onSubmit={onJoinSubmit}
+        onJoinStudy={startJoin}
+      />
     );
   }
 

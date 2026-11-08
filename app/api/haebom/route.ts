@@ -20,6 +20,7 @@ import {
   previewGroundedStimuli,
   publishStudy,
   recordConsent,
+  updateStudyListing,
   removeStudySource,
   runStudyLiteratureCopilot,
   searchStudyLiterature,
@@ -233,6 +234,25 @@ export async function POST(req: Request) {
       }
       case "run_literature_copilot": {
         return NextResponse.json(await runStudyLiteratureCopilot(body.studyId, body.query));
+      }
+      case "update_listing": {
+        const listing = body.listing === "public" || body.listing === "private" ? body.listing : undefined;
+        if (body.listing !== undefined && listing === undefined) {
+          return NextResponse.json({ error: "listing must be public or private" }, { status: 400 });
+        }
+        const minutes =
+          body.estimatedMinutes === null || body.estimatedMinutes === ""
+            ? null
+            : body.estimatedMinutes === undefined
+              ? undefined
+              : Number(body.estimatedMinutes);
+        return NextResponse.json(
+          await updateStudyListing(body.studyId, {
+            listing,
+            publicDescription: typeof body.publicDescription === "string" ? body.publicDescription : undefined,
+            estimatedMinutes: minutes
+          })
+        );
       }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });

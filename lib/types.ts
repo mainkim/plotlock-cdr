@@ -1,6 +1,8 @@
 /** Haebom core domain types — identity spine: study / version / participant / session / condition */
 
 export type StudyStatus = "draft" | "review" | "approved" | "published" | "closed";
+/** public: shown on the participant home. private: join code only. Omitted published studies stay public. */
+export type StudyListing = "public" | "private";
 export type VersionStatus = "draft" | "review" | "approved" | "published";
 export type DesignType = "between_subject" | "within_subject" | "mixed";
 
@@ -195,6 +197,11 @@ export type Study = {
   latestDraftVersionId: string | null;
   founderNote?: string;
   isDemo?: boolean;
+  /** Participant home visibility. Missing means public once the study is published. */
+  listing?: StudyListing;
+  /** Participant-facing blurb. Not the research question or hypotheses. */
+  publicDescription?: string;
+  estimatedMinutes?: number;
 };
 
 export type StudyVersion = {

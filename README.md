@@ -30,7 +30,7 @@ Open `http://localhost:3000`
 
 연구자 화면과 `POST /api/haebom`은 `HAEBOM_ADMIN_KEY`가 있어야 열립니다. 키가 없거나 16자보다 짧으면 요청은 503으로 거절됩니다. 웹에서는 입장 화면에 키를 입력하고, 서버는 그 값 대신 httpOnly 쿠키를 남깁니다. 스크립트는 `Authorization: Bearer <key>`를 쓸 수 있습니다. 로컬에서는 `.env.local`에 넣고, Vercel에는 같은 이름의 환경 변수로 넣습니다. 예시 값은 `.env.example`만 보고, 실제 키는 커밋하지 않습니다.
 
-참가자 미니앱과 `/p/{joinCode}`는 `POST /api/participant`만 사용합니다. 이 경로는 키 없이 동작하고, 조건 배정·다른 참가자의 응답·연구자용 목록은 내려주지 않습니다.
+참가자 미니앱은 `GET /api/haebom/open`으로 공개된 연구의 제목·짧은 설명·예상 시간·참여 코드만 읽고, 참여는 `POST /api/participant`로 합니다. 두 경로 모두 키 없이 동작하고, 조건 배정·다른 참가자의 응답·연구자용 목록·토스 사용자 식별자는 내려주지 않습니다. `listing: "private"`인 연구는 목록에서 빠지고 참여 코드로만 들어옵니다.
 
 ---
 

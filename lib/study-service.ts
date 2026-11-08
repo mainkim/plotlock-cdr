@@ -72,7 +72,8 @@ export async function createStudyFromPrompt(prompt: string, opts?: { title?: str
       targetN: opts?.targetN ?? 80,
       currentVersionId: versionId,
       latestDraftVersionId: versionId,
-      isDemo: opts?.isDemo ?? false
+      isDemo: opts?.isDemo ?? false,
+      listing: "public"
     };
     const version: StudyVersion = {
       id: versionId,
@@ -793,7 +794,45 @@ export async function seedDemoStudy() {
   await submitForReview(study.id);
   await approveStudy(study.id);
   const published = await publishStudy(study.id);
-  return published;
+  await updateStudyListing(published.study.id, {
+    listing: "public",
+    publicDescription: "추천 문구를 읽고 짧게 답하는 연구입니다.",
+    estimatedMinutes: 5
+  });
+  const listed = await getStudy(published.study.id);
+  return { ...published, study: listed ?? published.study };
+}
+
+export async function updateStudyListing(
+  studyId: string,
+  patch: { listing?: "public" | "private"; publicDescription?: string | null; estimatedMinutes?: number | null }
+) {
+  return await withDb((db) => {
+    const study = db.studies.find((item) => item.id === studyId);
+    if (!study) throw new Error("Study not found");
+    if (patch.listing !== undefined) {
+      if (patch.listing !== "public" && patch.listing !== "private") throw new Error("listing must be public or private");
+      study.listing = patch.listing;
+    }
+    if (patch.publicDescription !== undefined) {
+      const text = patch.publicDescription?.trim() ?? "";
+      if (!text) delete study.publicDescription;
+      else study.publicDescription = text.slice(0, 200);
+    }
+    if (patch.estimatedMinutes !== undefined) {
+      if (patch.estimatedMinutes === null) delete study.estimatedMinutes;
+      else if (!Number.isInteger(patch.estimatedMinutes) || patch.estimatedMinutes < 1 || patch.estimatedMinutes > 180) {
+        throw new Error("estimatedMinutes must be an integer from 1 to 180");
+      } else study.estimatedMinutes = patch.estimatedMinutes;
+    }
+    study.updatedAt = nowIso();
+    return {
+      id: study.id,
+      listing: study.listing ?? "public",
+      publicDescription: study.publicDescription,
+      estimatedMinutes: study.estimatedMinutes
+    };
+  });
 }
 
 export async function findStudyByJoinCode(code: string) {
@@ -823,7 +862,10 @@ export async function duplicateStudy(studyId: string) {
       targetN: source.targetN,
       currentVersionId: newVersionId,
       latestDraftVersionId: newVersionId,
-      isDemo: false
+      isDemo: false,
+      listing: source.listing,
+      publicDescription: source.publicDescription,
+      estimatedMinutes: source.estimatedMinutes
     };
     const version: StudyVersion = {
       id: newVersionId,
